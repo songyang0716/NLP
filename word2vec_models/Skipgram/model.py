@@ -30,6 +30,8 @@ class SkipGramNeg(nn.Module):
         :return:
         """
         # u,v: [batch_size, emb_dim]
+        # v is the center word / target input
+        # u is the context word
         v = self.input_emb(target_input)
         u = self.output_emb(context)
 
@@ -38,7 +40,8 @@ class SkipGramNeg(nn.Module):
 		# u_hat: [batch_size, neg_size, emb_dim]
 		# for each positive sample, we will randomly pick k negative samples
         u_hat = self.output_emb(neg)
-
+        neg_val = torch.bmm(u_hat, v.unsqueeze(2))
+        neg_val = torch.sum(self.log_sigmoid(-1 * neg_val), dim=1).squeeze()
         loss = positive_val + neg_val
         return -loss.mean()
 
