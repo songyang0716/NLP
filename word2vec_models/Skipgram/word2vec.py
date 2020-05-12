@@ -5,6 +5,7 @@ from data_utils import read_own_data, build_dataset
 import sys
 from model import SkipGramNeg
 import torch.optim as optim
+import DataPipeline
 
 
 class Word2Vec:
@@ -12,18 +13,23 @@ class Word2Vec:
 		self.corpus = read_own_data(path)
 		self.corpus = self.corpus[:n_review]
 		self.data, self.word_count, self.word2index, self.index2word = build_dataset(self.corpus, vocab_size)
-		# print(self.word_count)
-		# print(self.word2index)
-		# print(self.index2word)
-		# print(self.data)
 		self.vocabs = list(set(self.data))
 		self.model = SkipGramNeg(vocab_size, embedding_size).cuda()
 		self.model_optim = optim.SGD(self.model.parameters(), lr=learning_rate)
 
 
-	def train(self):
-		print("abc")
-
+	def train(self, 
+			  train_steps, 
+			  skip_window=1, 
+			  num_skips=2, 
+			  num_neg=20, 
+			  batch_size=128, 
+			  data_offest=0, 
+			  vali_size=3, 
+			  output_dir='out'):
+		# self.outputdir = os.mkdir(output_dir)
+		avg_loss = 0
+		pipeline = DataPipeline(self.data, self.vocabs ,self.word_count, data_offest)
 
 
 

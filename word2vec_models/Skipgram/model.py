@@ -45,7 +45,7 @@ class SkipGramNeg(nn.Module):
         loss = positive_val + neg_val
         return -loss.mean()
 
-
+    # get the embedding of the input word idx
     def predict(self, inputs):
         return self.input_emb(inputs)
 
