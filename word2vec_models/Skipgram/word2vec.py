@@ -1,11 +1,10 @@
 ################################################################################################################
 #### Reference: https://github.com/blackredscarf/pytorch-SkipGram/blob/master/word2vec.py
 ################################################################################################################
-from data_utils import read_own_data, build_dataset
+from data_utils import read_own_data, build_dataset, DataPipeline
 import sys
 from model import SkipGramNeg
 import torch.optim as optim
-import DataPipeline
 
 
 class Word2Vec:
