@@ -1,6 +1,6 @@
-################################################################################################################
-#### Reference: https://github.com/blackredscarf/pytorch-SkipGram/blob/master/word2vec.py
-################################################################################################################
+###############################################################################################################
+### Reference: https://github.com/blackredscarf/pytorch-SkipGram/blob/master/word2vec.py        ###############
+###############################################################################################################
 from data_utils import read_own_data, build_dataset, DataPipeline
 import sys
 from model import SkipGramNeg
@@ -13,9 +13,13 @@ class Word2Vec:
 		self.corpus = self.corpus[:n_review]
 		self.data, self.word_count, self.word2index, self.index2word = build_dataset(self.corpus, vocab_size)
 		self.vocabs = list(set(self.data))
-		self.model = SkipGramNeg(vocab_size, embedding_size).cuda()
+		# self.model = SkipGramNeg(vocab_size, embedding_size).cuda()
+		self.model = SkipGramNeg(vocab_size, embedding_size)
 		self.model_optim = optim.SGD(self.model.parameters(), lr=learning_rate)
-
+		print(len(self.vocabs))
+		print(self.vocabs)
+		print(len(self.word_count))
+		print(self.word_count)
 
 	def train(self, 
 			  train_steps, 
@@ -33,9 +37,7 @@ class Word2Vec:
 
 
 
-
-
 review_path = '/Users/yangsong/Desktop/Projects/gitrepo_songyang0716/NLP/word2vec_models/yelp_review_10000.txt'
-w2v = Word2Vec(review_path, vocab_size=100)
+w2v = Word2Vec(review_path)
 # w2v.train()
 # print(w2v.corpus[0])
