@@ -8,6 +8,9 @@ from io import open
 import numpy as np
 from collections import Counter
 import nltk
+################################################################################################################
+#### Reference: https://github.com/blackredscarf/pytorch-SkipGram/blob/master/word2vec.py
+################################################################################################################
 import spacy
 from spacy.lang.en.stop_words import STOP_WORDS
 import en_core_web_sm 
