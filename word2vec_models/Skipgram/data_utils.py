@@ -26,7 +26,7 @@ def read_own_data(filename):
 	print('reading data...')
 	with open(filename, 'r', encoding='utf-8') as f:
 		data = f.readlines()
-	print("corpus size", len(data))
+	# print("corpus size", len(data))
 	return data 
 
 def build_dataset(reviews, n_words):
@@ -48,10 +48,10 @@ def build_dataset(reviews, n_words):
 
 	words_freq_dict = collections.defaultdict(int)
 
-	for word, freq in words_freq[:n_words]:
+	for word, freq in words_freq[:n_words-1]:
 		words_freq_dict[word] = freq
 
-	for _, freq in words_freq[n_words:]:
+	for _, freq in words_freq[n_words-1:]:
 		words_freq_dict['UNK'] += freq
 
 	vocab = words_freq_dict.keys()
@@ -71,18 +71,28 @@ def build_dataset(reviews, n_words):
 	print("text cleaning done...")
 	return words_ix, words_freq_dict, word_to_ix, ix_to_word
 
-
-def noise(vocabs, word_count):
+def noise(vocabs, word_count, word2index, index2word, use_noise_neg=True):
 	"""
 	generate noise distribution
 	:param vocabs:
 	:param word_count:
 	:return:
 	"""
+	# unigram_table provide the probability of the word being drawn, the index is the word index
+	unigram_table = []
+	num_total_words = sum([c for w,c in word_count.items()])
+	for vocab in vocabs:
+		if not use_noise_neg:
+			unigram_table.append(word_count[index2word[vocab]] / num_total_words)
+		else:
+			unigram_table.append((word_count[index2word[vocab]] / num_total_words)**(3/4))
+	unigram_table = [i/sum(unigram_table) for i in unigram_table]
+	return unigram_table
+
 
 
 class DataPipeline:
-	def __init__(self, data, vocabs, word_count, data_index=0, use_noise_neg=True):
+	def __init__(self, data, vocabs, word_count, word2index, index2word, data_index=0):
 		"""
 		: data:  words_ix [word_index]
 		: vocabs: set of unique words (unigrams)
@@ -90,10 +100,10 @@ class DataPipeline:
 		"""
 		self.data = data
 		self.data_index = data_index
-		if use_noise_neg:
-			self.unigram_table = noise(vocabs, word_count)
-		else:
-			self.unigram_table = vocabs
+		self.unigram_table = noise(vocabs, word_count, word2index, index2word, use_noise_neg=True)
+		print(self.unigram_table)
+
+
 	
 	def get_neg_data(self, batch_size, num, target_inputs):
 		"""
@@ -103,6 +113,8 @@ class DataPipeline:
 		:param target_inputs: []
 		:return:
 		"""
+
+
 
 	def generate_batch(self, batch_size, num_skips, skip_window):
 		"""
