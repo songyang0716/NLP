@@ -4,10 +4,11 @@ from model import SkipGramNeg
 import torch
 import torch.optim as optim
 import random
+import numpy as np
 
 
 class Word2Vec:
-	def __init__(self, path, vocab_size=200, n_review=200, embedding_size=50, learning_rate=0.05):
+	def __init__(self, path, vocab_size=100, n_review=200, embedding_size=50, learning_rate=0.05):
 		self.corpus = read_own_data(path)
 		self.corpus = self.corpus[:n_review]
 		self.data, self.word_count, self.word2index, self.index2word = build_dataset(self.corpus, vocab_size)
@@ -36,14 +37,14 @@ class Word2Vec:
 		# self.outputdir = os.mkdir(output_dir)
 		pipeline = DataPipeline(self.data, self.vocabs ,self.word_count, self.word2index, self.index2word)
 		# used during the training analysis as validation samples
-		# vali_example = random.sample(self.vocabs, vali_size)
+		vali_example = random.sample(self.vocabs, vali_size)
 		# print(vali_example)
 		# [3, 20, 50]
 		n_batches = len(self.data) // batch_size
 		n_words = len(self.data)
 
 		for epoch in range(epochs):
-			total_loss = 0
+			avg_loss = 0
 			for batch in range(n_batches):
 				batch_inputs, batch_labels = pipeline.generate_batch(batch_size, num_skips, batch, n_words)
 				batch_neg = pipeline.get_neg_data(batch_size, num_neg)
@@ -64,25 +65,36 @@ class Word2Vec:
 				loss.backward()
 				self.model_optim.step()
 
-				total_loss += loss
+				avg_loss += loss
+			avg_loss = avg_loss/n_batches
 
-			print('Total loss at current epoch : ', total_loss)
+			print('Total loss at current epoch : ', avg_loss)
 
-				# if step % 200 == 0 and vali_size > 0:
-				#     nearest(self.model, vali_examples, vali_size, self.index2word, top_k=3)
+			# if epoch % 100 == 0 and vali_size > 0:
+			if epoch == 0:
+				print(vali_example)
+				self.most_similar(vali_example)
 
 
-	def most_similar(self, word, top_k=5):
-        index = self.word2index[word]
-        index = torch.tensor(index, dtype=torch.long).unsqueeze(0)
-        emb = self.model.predict(index)
-        sim = torch.mm(emb, self.model.input_emb.weight.transpose(0, 1))
-        nearest = (-sim[0]).sort()[1][1: top_k + 1]
-        top_list = []
-        for k in range(top_k):
-            close_word = self.index2word[nearest[k].item()]
-            top_list.append(close_word)
-        return top_list
+
+	def most_similar(self, word_idx, top_k=5):
+		index = torch.tensor(word_idx, dtype=torch.long)
+		emb = self.model.predict(index).squeeze(0)
+		sim = torch.mm(emb, self.model.input_emb.weight.transpose(0, 1))
+		print(sim.shape)
+		print(sim)
+		sorted_index = torch.argsort(sim, dim=1, descending=True)
+		print(sorted_index.shape)
+		# print(emb)
+		# print(emb.squeeze(0).shape)
+		# print(self.model.input_emb.weight.shape)
+		# sim = torch.mm(emb, self.model.input_emb.weight.transpose(0, 1))
+		# nearest = (-sim[0]).sort()[1][1: top_k + 1]
+		# top_list = []
+		# for k in range(top_k):
+		# 	close_word = self.index2word[nearest[k].item()]
+		# 	top_list.append(close_word)
+		# return top_list
 
 
 review_path = '/Users/yangsong/Desktop/Projects/gitrepo_songyang0716/NLP/word2vec_models/yelp_review_10000.txt'
