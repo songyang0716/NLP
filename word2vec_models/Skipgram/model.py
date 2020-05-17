@@ -1,6 +1,3 @@
-################################################################################################################
-#### Reference: https://github.com/blackredscarf/pytorch-SkipGram/blob/master/word2vec.py
-################################################################################################################
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -24,9 +21,9 @@ class SkipGramNeg(nn.Module):
 
 	def forward(self, target_input, context, neg):
 		"""
-		:param target_input: [batch_size]
-		:param context: [batch_size]
-		:param neg: [batch_size, neg_size]
+		:param target_input: [] input words index, size=batch_size
+		:param context: [] context words index, size=batch_size
+		:param neg: [] batch_size * negative_words_for each target
 		:return:
 		"""
 		# u,v: [batch_size, emb_dim]

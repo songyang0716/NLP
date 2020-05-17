@@ -1,14 +1,13 @@
-###############################################################################################################
-### Reference: https://github.com/blackredscarf/pytorch-SkipGram/blob/master/word2vec.py        ###############
-###############################################################################################################
 from data_utils import read_own_data, build_dataset, DataPipeline
 import sys
 from model import SkipGramNeg
+import torch
 import torch.optim as optim
 import random
 
+
 class Word2Vec:
-	def __init__(self, path, vocab_size=50, n_review=10, embedding_size=100, learning_rate=1.0):
+	def __init__(self, path, vocab_size=200, n_review=200, embedding_size=50, learning_rate=0.05):
 		self.corpus = read_own_data(path)
 		self.corpus = self.corpus[:n_review]
 		self.data, self.word_count, self.word2index, self.index2word = build_dataset(self.corpus, vocab_size)
@@ -28,28 +27,67 @@ class Word2Vec:
 
 
 	def train(self, 
-			  train_steps=10, 
-			  skip_window=1, 
+			  epochs=1, 
 			  num_skips=2, 
-			  num_neg=20, 
-			  batch_size=128, 
-			  data_offest=0, 
+			  num_neg=5, 
+			  batch_size=32, 
 			  vali_size=3, 
 			  output_dir='out'):
 		# self.outputdir = os.mkdir(output_dir)
-		avg_loss = 0
-		pipeline = DataPipeline(self.data, self.vocabs ,self.word_count, self.word2index, self.index2word, data_offest)
+		pipeline = DataPipeline(self.data, self.vocabs ,self.word_count, self.word2index, self.index2word)
 		# used during the training analysis as validation samples
-		vali_example = random.sample(self.vocabs, vali_size)
+		# vali_example = random.sample(self.vocabs, vali_size)
 		# print(vali_example)
 		# [3, 20, 50]
+		n_batches = len(self.data) // batch_size
+		n_words = len(self.data)
+
+		for epoch in range(epochs):
+			total_loss = 0
+			for batch in range(n_batches):
+				batch_inputs, batch_labels = pipeline.generate_batch(batch_size, num_skips, batch, n_words)
+				batch_neg = pipeline.get_neg_data(batch_size, num_neg)
+
+				batch_inputs = torch.tensor(batch_inputs, dtype=torch.long)
+				batch_labels = torch.tensor(batch_labels, dtype=torch.long)
+				batch_neg = torch.tensor(batch_neg, dtype=torch.long)
+
+				# print("inputs")
+				# print(batch_inputs)
+				# print("labels")
+				# print(batch_labels)
+				# print("negative")
+				# print(batch_neg)
+
+				loss = self.model(batch_inputs, batch_labels, batch_neg)
+				self.model_optim.zero_grad()
+				loss.backward()
+				self.model_optim.step()
+
+				total_loss += loss
+
+			print('Total loss at current epoch : ', total_loss)
+
+				# if step % 200 == 0 and vali_size > 0:
+				#     nearest(self.model, vali_examples, vali_size, self.index2word, top_k=3)
 
 
+	def most_similar(self, word, top_k=5):
+        index = self.word2index[word]
+        index = torch.tensor(index, dtype=torch.long).unsqueeze(0)
+        emb = self.model.predict(index)
+        sim = torch.mm(emb, self.model.input_emb.weight.transpose(0, 1))
+        nearest = (-sim[0]).sort()[1][1: top_k + 1]
+        top_list = []
+        for k in range(top_k):
+            close_word = self.index2word[nearest[k].item()]
+            top_list.append(close_word)
+        return top_list
 
 
 review_path = '/Users/yangsong/Desktop/Projects/gitrepo_songyang0716/NLP/word2vec_models/yelp_review_10000.txt'
 w2v = Word2Vec(review_path)
-w2v.train()
+w2v.train(epochs=1)
 # print(w2v.corpus[0])
 
 

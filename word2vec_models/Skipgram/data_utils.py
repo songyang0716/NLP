@@ -92,39 +92,61 @@ def noise(vocabs, word_count, word2index, index2word, use_noise_neg=True):
 
 
 class DataPipeline:
-	def __init__(self, data, vocabs, word_count, word2index, index2word, data_index=0):
+	def __init__(self, data, vocabs, word_count, word2index, index2word):
 		"""
 		: data:  words_ix [word_index]
 		: vocabs: set of unique words (unigrams)
 		: word_count: {word_index: word_count}
 		"""
 		self.data = data
-		self.data_index = data_index
 		self.unigram_table = noise(vocabs, word_count, word2index, index2word, use_noise_neg=True)
-		print(self.unigram_table)
+		# print(self.unigram_table)
 
 
 	
-	def get_neg_data(self, batch_size, num, target_inputs):
+	def get_neg_data(self, batch_size, num):
 		"""
 		sample the negative data. Don't use np.random.choice(), it is very slow.
 		:param batch_size: int
 		:param num: int
-		:param target_inputs: []
 		:return:
 		"""
+		neg = np.zeros(shape=(batch_size, num),dtype=int)
+		for i in range(batch_size):
+			neg_for_cur_batch = np.random.choice(a=len(self.unigram_table), size=num, replace=False, p=self.unigram_table)
+			neg[i] = neg_for_cur_batch
+		# print(neg)
+		# print(neg.shape)
+		return neg
 
 
 
-	def generate_batch(self, batch_size, num_skips, skip_window):
+
+	def generate_batch(self, batch_size, num_skips, cur_batch_index, n_words):
 		"""
 		get the data batch
 		:param batch_size:
 		:param num_skips:
-		:param skip_window:
 		:return: target batch and context batch
 		""" 
-
+		batch = np.zeros(shape=batch_size,dtype=int)
+		context = np.zeros(shape=batch_size,dtype=int)
+		start_index = cur_batch_index*batch_size
+		for i in range(batch_size):
+			batch[i] = self.data[cur_batch_index*batch_size + i]
+			window_left_margin =  max(0, cur_batch_index*batch_size + i - num_skips)
+			window_right_margin = min(cur_batch_index*batch_size + i + num_skips + 1, n_words)
+			candidates = [j for j in range(window_left_margin, window_right_margin) if j != (cur_batch_index*batch_size + i)]
+			context[i] = self.data[random.choice(candidates)]	
+			# print("Cur word")
+			# print(cur_batch_index*batch_size + i)
+			# print("Left margin")		
+			# print(window_left_margin)
+			# print("Right margin")
+			# print(window_right_margin)
+			# print("Selected context")
+			# print(context[i])
+		return batch, context
 
 
 
