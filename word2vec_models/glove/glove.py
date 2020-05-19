@@ -15,7 +15,7 @@ batch_size = 20
 alpha = 3/4
 context_size = 3
 embed_size = 100
-xmax = 2
+xmax = 100
 n_reviews = 50
 
 
@@ -37,10 +37,36 @@ vocab_size = len(vocab)
 word_to_idx = {v:i for i, v in enumerate(vocab)}
 idx_to_word = {i:v for i, v in enumerate(vocab)}
 
-# print(vocab)
-# print(word_size)
-# print(vocab_size)
-# print(word_to_idx)
+
+
+# Helper functions
+def show_similar_words(words, comat, top_n=3):
+	for w in words:
+		print(w)
+		sww = comat[word_to_idx[w],:]
+		sw = sww.argsort()[-top_n:][::-1]
+		print([idx_to_word[i] for i in sw])
+
+def wf(x):
+	if x < xmax:
+		return (x/xmax)**alpha
+	else:
+		return 1
+
+def gen_batch(coocs):
+	# extract f
+	sample = np.random.choice(np.arange(len(coocs)), size=batch_size, replace=False)
+	l_vecs, r_vecs, covals, l_v_bias, r_v_bias = [],[],[],[]
+	for chosen in sample:
+		# a pair of index
+		ind = tuple(coocs[chosen])
+		l_vecs.append(l_embed[ind[0]])
+		r_vecs.append(r_embed[ind[1]])
+		covals.append(coocs[ind])
+		l_v_bias.append(l_v_bias[ind[0]])
+		r_v_bias.append(r_v_bias[ind[1]])
+	return l_vecs, r_vecs, covals, l_v_bias, r_v_bias
+
 
 
 # cooccurence matrix
@@ -63,24 +89,10 @@ print(comat.shape)
 # non-zero occurence index
 coocs = np.transpose(np.nonzero(comat))
 
+# print(len(coocs))
+# gen_batch()
 
 
-
-
-
-# some helper functions
-def show_similar_words(words, comat, top_n=3):
-	for w in words:
-		print(w)
-		sww = comat[word_to_idx[w],:]
-		sw = sww.argsort()[-top_n:][::-1]
-		print([idx_to_word[i] for i in sw])
-
-def wf(x):
-	if x < xmax:
-		return (x/xmax)**alpha
-	else:
-		return 1
 
 
 
