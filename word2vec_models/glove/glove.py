@@ -16,7 +16,7 @@ alpha = 0.8
 context_size = 3
 embed_size = 100
 xmax = 2
-n_reviews = 100
+n_reviews = 10000
 
 
 
@@ -26,7 +26,8 @@ f = open('../yelp_review_10000.txt', "r", encoding='utf-8')
 reviews = f.readlines()
 wordtokens = []
 for review in reviews[:n_reviews]:
-	tokens = [word.lower() for word in word_tokenize(review)]
+	#and not word in nlp.Defaults.stop_words
+	tokens = [word.lower() for word in word_tokenize(review) if word.isalnum()]
 	#encode('utf-8')
 	wordtokens.extend(tokens)
 
