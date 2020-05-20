@@ -29,20 +29,32 @@ class GloVe(nn.Module):
 		self.input_emb = nn.Embedding(self.num_classes, self.emb_dim)
 		self.output_emb = nn.Embedding(self.num_classes, self.emb_dim)
 
-		self.input_bias = nn.Embedding(self.num_classes, self.emb_dim)
-		self.output_bias = nn.Embedding(self.num_classes, self.emb_dim)
+		self.input_bias = nn.Embedding(self.num_classes,1)
+		self.output_bias = nn.Embedding(self.num_classes,1)
 
 		# Xavier init
 		self.input_emb.weight.data = nn.init.xavier_uniform_(self.input_emb.weight.data)
 		self.output_emb.weight.data = nn.init.xavier_uniform_(self.output_emb.weight.data)
 
+		self.input_bias.weight.data = nn.init.xavier_uniform_(self.input_bias.weight.data)
+		self.output_bias.weight.data = nn.init.xavier_uniform_(self.output_bias.weight.data)
 
-	def forward(self, target_input, context, neg):
-		"""
-		:param target_input: [] input words index, size=batch_size
-		:param context: [] context words index, size=batch_size
-		:param neg: [] batch_size * negative_words_for each target
-		:return:
-		"""
+
+	def forward(self, input_idx, output_idx):
+        """
+        :param input: An array with shape of [batch_size] of int type
+        :param output: An array with shape of [batch_size] of int type
+        :return: loss estimation for Global Vectors word representations
+                 defined in nlp.stanford.edu/pubs/glove.pdf
+        """
+        batch_size = len(input_idx)
+        input_batch_embed = self.input_emb[input_idx]
+        input_batch_bias = self.input_bias[input_idx]
+
+        output_batch_embed = self.output_emb[output_idx]
+        output_batch_bias = self.output_bias[output_idx]
+
+        output_matrix = torch.sum(torch.mul(input_batch_embed, output_batch_embed), dim=1) + input_batch_bias + output_batch_bias - self.co_oc[zip(input_idx, output_idx)]
+        
 
 
