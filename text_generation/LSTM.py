@@ -54,23 +54,47 @@ def read_file(train_file, batch_size, seq_size):
 	return idx_to_word, word_to_idx, vocab_size, in_text, out_text
 
 
+def generate_batch(in_text, out_text, batch_size, seq_size):
+	num_batches = in_text.shape[0]
+	for i in range(num_batches):
+		in_text_cur = np.reshape(in_text[i], (batch_size, seq_size))
+		out_text_cur =  np.reshape(out_text[i], (batch_size, seq_size))
+		yield in_text_cur, out_text_cur
+
 
 def main():
 	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+	print(device)
 	idx_to_word, word_to_idx, vocab_size, in_text, out_text = read_file(train_file, batch_size, seq_size)
 
 	lstm_model = LSTM(vocab_size, seq_size, emb_size, hidden_size)
 	lstm_model = lstm_model.to(device)
 
 	lstm_optim = optim.Adam(lstm_model.parameters(), lr=l_rate)
+	loss_function = torch.nn.CrossEntropyLoss()
 
 
 	for i in range(epoch):
+		batches = generate_batch(in_text, out_text, batch_size, seq_size)
 		h0, c0 = lstm_model.initial_state(batch_size)
 		h0 = h0.to(device)
 		c0 = c0.to(device)
 
+		for x, y in batches:
+			# shape of x is (batch_size, seq_size)
+			x = torch.tensor(x).to(device)
+			y = torch.tensor(y).to(device)
 
+			lstm_optim.zero_grad()
+			logits, (state_h, state_c) = lstm_model(x, (h0, c0))
+			print(logits.shape)
+			print(y.shape)
+			loss = loss_function(logits, y)
+			print(loss.item())
+			loss.backward()
+			lstm_optim.step()
+
+			break
 
 if __name__ == '__main__':
 	main()

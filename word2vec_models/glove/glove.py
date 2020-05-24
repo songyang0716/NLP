@@ -40,7 +40,6 @@ idx_to_word = {i:v for i, v in enumerate(vocab)}
 
 
 
-
 # cooccurence matrix
 comat = np.zeros((vocab_size, vocab_size))
 for i in range(word_size):
@@ -79,9 +78,7 @@ def get_batch(batch_idx):
 			c_word_idx.append(ind)
 			context_word_idx.append(word_to_idx[wordtokens[i+j]])
 
-
 	return c_word_idx, context_word_idx
-
 
 
 

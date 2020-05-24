@@ -19,24 +19,24 @@ class LSTM(nn.Module):
 		# from hidden layer to output layer
 		# hidden_size to n_vocab
 		self.dense = nn.Linear(hidden_size, n_vocab)
-		self.softmax = nn.softmax(dim=2)
 
 		# Xavier init
 		self.embedding.weight.data = nn.init.xavier_uniform_(self.embedding.weight.data)
-		self.lstm.weight.data = nn.init.xavier_uniform_(self.lstm.weight.data)
+		# self.lstm.weight.data = nn.init.xavier_uniform_(self.lstm.weight.data)
 		self.dense.weight.data = nn.init.xavier_uniform_(self.dense.weight.data)
 
 		# self.embedding.weight.requires_grad = False
 
 	def forward(self, x, prev_state):
 		embed = self.embedding(x)
-		# emd is of shape seq_len , batch , input_size
+		# emd is of shape batch ,seq_len input_size
 		# the prev_state contains two tensor, h_0 and c_0  
 		# initial hidden state & initial cell state of shape (num_direction*layer , batch_size , hidden_size) 
 		output, state = self.lstm(embed, prev_state)
 		# raw output, batch_size * seq_length * n_vocab
 		logits = self.dense(output)
-		prob = self.softmax(logits)
+		return logits
+		# prob = self.softmax(logits)
 
 
 	def initial_state(self, batch_size):
