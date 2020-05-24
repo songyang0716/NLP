@@ -16,7 +16,7 @@ from model import LSTM
 train_file = 'yelp_review_10000.txt'
 seq_size = 32
 batch_size = 16
-emb_size = 64
+emb_size = 100
 hidden_size = 64
 gradients_norm = 5
 predict_top_k = 5
@@ -75,17 +75,17 @@ def predict(device, model, vocab_size, word_to_idx, idx_to_word, top_k=5):
 	output = output.squeeze()
 	_, top_ix = torch.topk(output, k=top_k)
 
-	choices = top_ix.detach().numpy()
+	choices = top_ix.detach().cpu().numpy()
 	choice = np.random.choice(choices,1)[0]
 
 	words.append(idx_to_word[choice])
 
-	for _ in range(100):
+	for _ in range(output_sentence_length):
 		ix = torch.tensor([[choice]]).to(device)
 		output, (h0, c0) = model(ix, (h0, c0))
 		output = output.squeeze()
 		_, top_ix = torch.topk(output, k=top_k)
-		choices = top_ix.detach().numpy()
+		choices = top_ix.detach().cpu().numpy()
 		choice = np.random.choice(choices,1)[0]
 		words.append(idx_to_word[choice])
 
@@ -142,9 +142,10 @@ def main():
 
 		avg_loss = total_loss / iterations
 
-		if i % 5 == 0:
-			print('Epoch: {}'.format(i),
+		print('Epoch: {}'.format(i),
 				  'Loss: {}'.format(avg_loss))
+		if i % 10 == 0:
+			torch.save(lstm_model.state_dict(),'checkpoint_pt/model-{}.pth'.format(i))		
 		
 	_ = predict(device, lstm_model, vocab_size, word_to_idx, idx_to_word, top_k=predict_top_k)
 
