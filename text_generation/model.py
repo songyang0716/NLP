@@ -35,7 +35,7 @@ class LSTM(nn.Module):
 		output, state = self.lstm(embed, prev_state)
 		# raw output, batch_size * seq_length * n_vocab
 		logits = self.dense(output)
-		return logits
+		return logits, state
 		# prob = self.softmax(logits)
 
 

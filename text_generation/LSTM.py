@@ -1,3 +1,5 @@
+# Run the whole thing using google Colab #
+
 import sys
 import torch
 import torch.optim as optim
@@ -9,6 +11,7 @@ from nltk.tokenize import word_tokenize
 from model import LSTM 
 
 
+
 # Parameters
 train_file = 'yelp_review_10000.txt'
 seq_size = 32
@@ -17,8 +20,9 @@ emb_size = 64
 hidden_size = 64
 gradients_norm = 5
 predict_top_k = 5
+output_sentence_length = 50
 l_rate = 0.01
-epoch = 30
+epoch = 1
 
 
 
@@ -48,9 +52,6 @@ def read_file(train_file, batch_size, seq_size):
 	in_text = np.reshape(in_text, (num_batches,-1))
 	out_text = np.reshape(out_text, (num_batches,-1))
 
-	# print(in_text.shape)
-	# print(out_text.shape)
-
 	return idx_to_word, word_to_idx, vocab_size, in_text, out_text
 
 
@@ -60,6 +61,37 @@ def generate_batch(in_text, out_text, batch_size, seq_size):
 		in_text_cur = np.reshape(in_text[i], (batch_size, seq_size))
 		out_text_cur =  np.reshape(out_text[i], (batch_size, seq_size))
 		yield in_text_cur, out_text_cur
+
+
+def predict(device, model, vocab_size, word_to_idx, idx_to_word, top_k=5):
+	model.eval()
+	words = ['i', 'like']
+	h0, c0 = model.initial_state(1)
+	h0 = h0.to(device)
+	c0 = c0.to(device)
+	for w in words:
+		ix = torch.tensor([[word_to_idx[w]]]).to(device)
+		output, (h0, c0) = model(ix, (h0, c0))
+	output = output.squeeze()
+	_, top_ix = torch.topk(output, k=top_k)
+
+	choices = top_ix.detach().numpy()
+	choice = np.random.choice(choices,1)[0]
+
+	words.append(idx_to_word[choice])
+
+	for _ in range(100):
+		ix = torch.tensor([[choice]]).to(device)
+		output, (h0, c0) = model(ix, (h0, c0))
+		output = output.squeeze()
+		_, top_ix = torch.topk(output, k=top_k)
+		choices = top_ix.detach().numpy()
+		choice = np.random.choice(choices,1)[0]
+		words.append(idx_to_word[choice])
+
+	print(' '.join(words).encode('utf-8'))
+
+	return ""
 
 
 def main():
@@ -88,23 +120,33 @@ def main():
 
 			lstm_optim.zero_grad()
 
-			logits = lstm_model(x, (h0, c0))
+			logits, (h0, c0) = lstm_model(x, (h0, c0))
+
 			_,_,n_cat = logits.shape
+
 			loss = loss_function(logits.view(-1, n_cat), y.view(-1))
 			
+			print(loss.item())
 			total_loss += loss.item()
 			iterations += 1
 			loss.backward()
 
+       		# Starting each batch, we detach the hidden state from how it was previously produced.
+			# If we didn't, the model would try backpropagating all the way to start of the dataset.
+			h0 = h0.detach()
+			c0 = c0.detach()
+
 			_ = torch.nn.utils.clip_grad_norm_(lstm_model.parameters(), gradients_norm)
 			lstm_optim.step()
+			# break
 
 		avg_loss = total_loss / iterations
 
 		if i % 5 == 0:
 			print('Epoch: {}'.format(i),
 				  'Loss: {}'.format(avg_loss))
-			
+		
+	_ = predict(device, lstm_model, vocab_size, word_to_idx, idx_to_word, top_k=predict_top_k)
 
 
 if __name__ == '__main__':
