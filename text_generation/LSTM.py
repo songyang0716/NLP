@@ -48,8 +48,8 @@ def read_file(train_file, batch_size, seq_size):
 	in_text = np.reshape(in_text, (num_batches,-1))
 	out_text = np.reshape(out_text, (num_batches,-1))
 
-	print(in_text.shape)
-	print(out_text.shape)
+	# print(in_text.shape)
+	# print(out_text.shape)
 
 	return idx_to_word, word_to_idx, vocab_size, in_text, out_text
 
@@ -79,6 +79,7 @@ def main():
 		h0, c0 = lstm_model.initial_state(batch_size)
 		h0 = h0.to(device)
 		c0 = c0.to(device)
+		total_loss, iterations = 0, 0
 
 		for x, y in batches:
 			# shape of x is (batch_size, seq_size)
@@ -86,15 +87,25 @@ def main():
 			y = torch.tensor(y).to(device)
 
 			lstm_optim.zero_grad()
-			logits, (state_h, state_c) = lstm_model(x, (h0, c0))
-			print(logits.shape)
-			print(y.shape)
-			loss = loss_function(logits, y)
-			print(loss.item())
+
+			logits = lstm_model(x, (h0, c0))
+			_,_,n_cat = logits.shape
+			loss = loss_function(logits.view(-1, n_cat), y.view(-1))
+			
+			total_loss += loss.item()
+			iterations += 1
 			loss.backward()
+
+			_ = torch.nn.utils.clip_grad_norm_(lstm_model.parameters(), gradients_norm)
 			lstm_optim.step()
 
-			break
+		avg_loss = total_loss / iterations
+
+		if i % 5 == 0:
+			print('Epoch: {}'.format(i),
+				  'Loss: {}'.format(avg_loss))
+			
+
 
 if __name__ == '__main__':
 	main()
