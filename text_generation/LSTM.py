@@ -6,18 +6,19 @@ import numpy as np
 import spacy
 from collections import Counter
 from nltk.tokenize import word_tokenize
-
+from model import LSTM 
 
 
 # Parameters
-train_file='yelp_review_10000.txt'
-seq_size=32
-batch_size=16
-embedding_size=64
-lstm_size=64
-gradients_norm=5
-predict_top_k=5
-
+train_file = 'yelp_review_10000.txt'
+seq_size = 32
+batch_size = 16
+emb_size = 64
+hidden_size = 64
+gradients_norm = 5
+predict_top_k = 5
+l_rate = 0.01
+epoch = 30
 
 
 
@@ -44,8 +45,8 @@ def read_file(train_file, batch_size, seq_size):
 	out_text[:-1] = in_text[1:]
 	out_text[-1] = in_text[0]
 
-	in_text = np.reshape(in_text,(num_batches,-1))
-	out_text = np.reshape(out_text,(num_batches,-1))
+	in_text = np.reshape(in_text, (num_batches,-1))
+	out_text = np.reshape(out_text, (num_batches,-1))
 
 	print(in_text.shape)
 	print(out_text.shape)
@@ -56,9 +57,18 @@ def read_file(train_file, batch_size, seq_size):
 
 def main():
 	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-	# nlp = spacy.load("en_core_web_sm")
 	idx_to_word, word_to_idx, vocab_size, in_text, out_text = read_file(train_file, batch_size, seq_size)
 
+	lstm_model = LSTM(vocab_size, seq_size, emb_size, hidden_size)
+	lstm_model = lstm_model.to(device)
+
+	lstm_optim = optim.Adam(lstm_model.parameters(), lr=l_rate)
+
+
+	for i in range(epoch):
+		h0, c0 = lstm_model.initial_state(batch_size)
+		h0 = h0.to(device)
+		c0 = c0.to(device)
 
 
 

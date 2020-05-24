@@ -19,7 +19,7 @@ class LSTM(nn.Module):
 		# from hidden layer to output layer
 		# hidden_size to n_vocab
 		self.dense = nn.Linear(hidden_size, n_vocab)
-
+		self.softmax = nn.softmax(dim=2)
 
 		# Xavier init
 		self.embedding.weight.data = nn.init.xavier_uniform_(self.embedding.weight.data)
@@ -27,7 +27,6 @@ class LSTM(nn.Module):
 		self.dense.weight.data = nn.init.xavier_uniform_(self.dense.weight.data)
 
 		# self.embedding.weight.requires_grad = False
-
 
 	def forward(self, x, prev_state):
 		embed = self.embedding(x)
@@ -37,8 +36,10 @@ class LSTM(nn.Module):
 		output, state = self.lstm(embed, prev_state)
 		# raw output, batch_size * seq_length * n_vocab
 		logits = self.dense(output)
+		prob = self.softmax(logits)
 
-	def zero_state(self, batch_size):
+
+	def initial_state(self, batch_size):
 		h_0 = torch.zeros(1, batch_size, self.lstm_size)
 		c_0 = torch.zeros(1, batch_size, self.lstm_size)
 		return (h_0, c_0)
