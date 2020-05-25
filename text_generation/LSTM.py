@@ -22,8 +22,10 @@ gradients_norm = 5
 predict_top_k = 5
 output_sentence_length = 50
 l_rate = 0.01
-epoch = 1
+val_data_proportion = 0.05
+epoch = 30
 
+np.random.seed(888)
 
 
 def read_file(train_file, batch_size, seq_size):
@@ -97,7 +99,25 @@ def predict(device, model, vocab_size, word_to_idx, idx_to_word, top_k=5):
 def main():
 	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 	print(device)
+
 	idx_to_word, word_to_idx, vocab_size, in_text, out_text = read_file(train_file, batch_size, seq_size)
+
+	num_batches, _ = in_text.shape
+
+	val_index = np.random.choice(np.arange(num_batches), int(num_batches * val_data_proportion), replace=False)
+	train_index = np.delete(np.arange(num_batches), val_index)
+
+
+	train_in_text = in_text[train_index,:]
+	train_out_text = out_text[train_index,:]
+
+	val_in_text = in_text[val_index,:]
+	val_out_text = out_text[val_index,:]
+
+	# print(num_batches)
+	# print(train_in_text.shape)
+	# print(val_in_text.shape)
+	# print(vocab_size)
 
 	lstm_model = LSTM(vocab_size, seq_size, emb_size, hidden_size)
 	lstm_model = lstm_model.to(device)
@@ -106,32 +126,34 @@ def main():
 	loss_function = torch.nn.CrossEntropyLoss()
 
 
+	train_set_loss = []
+	val_set_loss = []
+
 	for i in range(epoch):
-		batches = generate_batch(in_text, out_text, batch_size, seq_size)
+		train_batches = generate_batch(train_in_text, train_out_text, batch_size, seq_size)
+		val_batches = generate_batch(val_in_text, val_out_text, batch_size, seq_size)
 		h0, c0 = lstm_model.initial_state(batch_size)
 		h0 = h0.to(device)
 		c0 = c0.to(device)
-		total_loss, iterations = 0, 0
+		total_loss, iterations, val_loss, val_iterations = 0, 0, 0, 0
 
-		for x, y in batches:
+
+		# training_batch
+		for x, y in train_batches:
+			iterations += 1
+			lstm_model.train()
 			# shape of x is (batch_size, seq_size)
 			x = torch.tensor(x).to(device)
 			y = torch.tensor(y).to(device)
 
 			lstm_optim.zero_grad()
-
 			logits, (h0, c0) = lstm_model(x, (h0, c0))
-
 			_,_,n_cat = logits.shape
-
 			loss = loss_function(logits.view(-1, n_cat), y.view(-1))
-			
-			print(loss.item())
 			total_loss += loss.item()
-			iterations += 1
 			loss.backward()
 
-       		# Starting each batch, we detach the hidden state from how it was previously produced.
+			# Starting each batch, we detach the hidden state from how it was previously produced.
 			# If we didn't, the model would try backpropagating all the way to start of the dataset.
 			h0 = h0.detach()
 			c0 = c0.detach()
@@ -140,13 +162,31 @@ def main():
 			lstm_optim.step()
 			# break
 
+		for x_val, y_val in val_batches:
+
+			val_iterations += 1
+			lstm_model.eval()
+
+			x_val = torch.tensor(x_val).to(device)
+			y_val = torch.tensor(y_val).to(device)
+
+			logits, (h0, c0) = lstm_model(x_val, (h0, c0))
+
+			_,_,n_cat = logits.shape
+			loss = loss_function(logits.view(-1, n_cat), y_val.view(-1))
+			val_loss += loss.item()
+
+
 		avg_loss = total_loss / iterations
+		val_avg_loss = val_loss / val_iterations
+		train_set_loss.append(avg_loss)
+		val_set_loss.append(val_avg_loss)
 
 		print('Epoch: {}'.format(i),
-				  'Loss: {}'.format(avg_loss))
+			  'Loss: {}'.format(avg_loss))
 		if i % 10 == 0:
 			torch.save(lstm_model.state_dict(),'checkpoint_pt/model-{}.pth'.format(i))		
-		
+		torch.save(lstm_model.state_dict(),'checkpoint_pt/model-{}.pth'.format(i))	
 	_ = predict(device, lstm_model, vocab_size, word_to_idx, idx_to_word, top_k=predict_top_k)
 
 
