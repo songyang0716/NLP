@@ -10,6 +10,7 @@ from collections import Counter
 from nltk.tokenize import word_tokenize
 from model import LSTM 
 
+torch.cuda.empty_cache()
 
 
 # Parameters
@@ -183,12 +184,12 @@ def main():
 		val_set_loss.append(val_avg_loss)
 
 		print('Epoch: {}'.format(i),
-			  'Loss: {}'.format(avg_loss))
-		if i % 10 == 0:
-			torch.save(lstm_model.state_dict(),'checkpoint_pt/model-{}.pth'.format(i))		
-		torch.save(lstm_model.state_dict(),'checkpoint_pt/model-{}.pth'.format(i))	
+			  'Loss: {}'.format(avg_loss),
+          	  'Validation Loss: {}'.format(val_avg_loss))
+		# if i % 10 == 0:
+		# 	torch.save(lstm_model.state_dict(),'checkpoint_pt/model-{}.pth'.format(i))		
 	_ = predict(device, lstm_model, vocab_size, word_to_idx, idx_to_word, top_k=predict_top_k)
-
+	return train_set_loss, val_set_loss
 
 if __name__ == '__main__':
 	main()

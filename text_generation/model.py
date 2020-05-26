@@ -33,7 +33,7 @@ class LSTM(nn.Module):
 		# the prev_state contains two tensor, h_0 and c_0  
 		# initial hidden state & initial cell state of shape (num_direction*layer , batch_size , hidden_size) 
 		output, state = self.lstm(embed, prev_state)
-		# raw output, batch_size * seq_length * n_vocab
+		# raw output, batch_size, seq_length, n_vocab
 		logits = self.dense(output)
 		return logits, state
 		# prob = self.softmax(logits)
