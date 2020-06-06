@@ -5,6 +5,7 @@ Preprocess the movie reviews sentences
 import sys
 import numpy as np
 import random
+import re
 
 
 
@@ -27,7 +28,7 @@ def parse_file2lol(filename):
 
 def string2list(sentence_in_string):
 	"""convert strings with '\n' to list of words without '\n' """
-	return sentence_in_string.strip().split()   # remove last \n
+	return sentence_in_string.strip().replace('-',' ').split()
 
 
 def shuffle(lol, seed=888):
@@ -95,9 +96,24 @@ def sentence_to_index(word2idx, sentences):
 		list of sentences which are list of word
 	:return:
 	"""
-	print "-------------begin making sentence xIndexes-------------"
+	print ("-------------begin making sentence xIndexes-------------")
 	sentences_indexes = []
+	for sentence in sentences:
+		s_index = []
+		for word in sentence:
+			if word in word2idx:
+				s_index.append(word2idx[word])
+			else:
+				s_index.append(word2idx["_unk"])
+				# print("Can't find the word {} in the embedding list".format(word))
+		if not s_index:
+			# print("Empty sentences: {}".format(sentence))
+			s_index.append(word2idx["_unk"])
+		sentences_indexes.append(s_index)
 
+	assert len(sentences_indexes) == len(sentences)
+	print ("-------------finish making sentence xIndexes-------------")
+	return sentences_indexes
 
 def make_datasets(word2idx, raw_data):
 	"""
@@ -120,6 +136,18 @@ def make_datasets(word2idx, raw_data):
 					   "yLabels": yLabels}
 
 	return datasets
+
+
+###################
+#   Serialization to pickle
+###################
+def dict2pickle(your_dict, out_file):
+	try:
+		import cPickle as pickle
+	except ImportError:
+		import pickle
+	with open(out_file, 'wb') as f:
+		pickle.dump(your_dict, f)
 
 
 
@@ -156,14 +184,20 @@ def processing():
 				"validation": valid,
 				"test": test}
 
-	# print(raw_data)
 	vocab = read_emb_idx(embedding_file)
-	# print(vocab["embeddings"].shape)
-	# print(vocab["word2idx"])
 	word2idx, embeddings = vocab["word2idx"], vocab["embeddings"]
 
 	# transform sentence to word index
 	datasets = make_datasets(word2idx, raw_data)
+
+	dict2pickle(datasets, output_dir + "features_glove.pkl")
+	dict2pickle(word2idx, output_dir + "word2idx_glove.pkl")
+	dict2pickle(embeddings, output_dir + "embeddings_glove.pkl")
+
+
+	print (word2idx["_padding"])
+	print (word2idx["_unk"])
+	print ("-------------Finish processing-------------")
 
 
 if __name__ == '__main__':
