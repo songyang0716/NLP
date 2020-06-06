@@ -75,16 +75,7 @@ from torch.autograd import Variable
 
 
 def main():
-	embeddings_dict = {}
 
-	in_dir = "./../../data/glove.6B/"
-	with open(in_dir+"glove.6B.50d.txt", 'r', encoding="utf-8") as f:
-		for line in f:
-			values = line.split()
-			word = values[0]
-			vector = np.asarray(values[1:], "float32")
-			embeddings_dict[word] = vector
-	# print(len(embeddings_dict))
     emb_np = numpy.asarray(embeddings, dtype=numpy.float32)  # from_numpy
     emb = torch.from_numpy(emb_np)
 
