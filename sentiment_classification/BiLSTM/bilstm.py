@@ -84,7 +84,9 @@ def main():
 			word = values[0]
 			vector = np.asarray(values[1:], "float32")
 			embeddings_dict[word] = vector
-	print(len(embeddings_dict))
+	# print(len(embeddings_dict))
+    emb_np = numpy.asarray(embeddings, dtype=numpy.float32)  # from_numpy
+    emb = torch.from_numpy(emb_np)
 
 
 
