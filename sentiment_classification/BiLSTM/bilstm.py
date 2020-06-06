@@ -1,26 +1,13 @@
 import sys
 import torch
+import torch.nn as nn
+from torch.autograd import Variable
 import torch.optim as optim
 import random
 import numpy as np
-import spacy
-from collections import Counter
-from nltk.tokenize import word_tokenize
-# from model import LSTM 
+# from model import BLSTM 
 
 
-
-# import argparse
-# import os
-# import time
-# from progress.bar import Bar
-# import yutils
-
-import torch.nn as nn
-from torch.autograd import Variable
-# from nnet.blstm import BLSTM
-# from nnet.lstm import LSTM
-# from nnet.cnn import CNN
 
 
 
@@ -72,12 +59,45 @@ from torch.autograd import Variable
 #     loss.backward()
 #     optimizer.step()
 
+##############################
+#   Serialization to pickle  #
+##############################
+def pickle2dict(in_file):
+	try:
+		import cPickle as pickle
+	except ImportError:
+		import pickle
+	with open(in_file, 'rb') as f:
+		your_dict = pickle.load(f)
+		return your_dict
 
+
+embsize = 50
+hidden_size = 64
+n_layers = 2
+max_len = 20
+dropout = 0.5
+input_dir = "./data/"
 
 def main():
 
-    emb_np = numpy.asarray(embeddings, dtype=numpy.float32)  # from_numpy
-    emb = torch.from_numpy(emb_np)
+	dataset = pickle2dict(input_dir + "features_glove.pkl")
+	embeddings = pickle2dict(input_dir + "embeddings_glove.pkl")
+	dataset["embeddings"] = embeddings
+
+	emb_np = np.asarray(embeddings, dtype=np.float32)
+	emb = torch.from_numpy(emb_np)
+
+	print(emb.size())
+
+	# models = BLSTM(embeddings=emb,
+	# 				input_dim=embsize,
+	# 				hidden_dim=hidden_size,
+	# 				num_layers=n_layers,
+	# 				output_dim=2,
+	# 				max_len=max_len,
+	# 				dropout=dropout)
+
 
 
 
