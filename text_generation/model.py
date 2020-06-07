@@ -29,7 +29,7 @@ class LSTM(nn.Module):
 
 	def forward(self, x, prev_state):
 		embed = self.embedding(x)
-		# emd is of shape batch ,seq_len input_size
+		# emd is of shape batch ,seq_len, input_size(input dim)
 		# the prev_state contains two tensor, h_0 and c_0  
 		# initial hidden state & initial cell state of shape (num_direction*layer , batch_size , hidden_size) 
 		output, state = self.lstm(embed, prev_state)

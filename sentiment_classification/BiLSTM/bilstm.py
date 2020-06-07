@@ -5,7 +5,7 @@ from torch.autograd import Variable
 import torch.optim as optim
 import random
 import numpy as np
-# from model import BLSTM 
+from model import BLSTM 
 
 
 
@@ -74,12 +74,15 @@ def pickle2dict(in_file):
 
 embsize = 50
 hidden_size = 64
-n_layers = 2
+n_layers = 1
 max_len = 20
-dropout = 0.5
+dropout = 0
+l_rate = 0.01
 input_dir = "./data/"
 
 def main():
+	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+	print(device)
 
 	dataset = pickle2dict(input_dir + "features_glove.pkl")
 	embeddings = pickle2dict(input_dir + "embeddings_glove.pkl")
@@ -90,17 +93,52 @@ def main():
 
 	print(emb.size())
 
-	# models = BLSTM(embeddings=emb,
-	# 				input_dim=embsize,
-	# 				hidden_dim=hidden_size,
-	# 				num_layers=n_layers,
-	# 				output_dim=2,
-	# 				max_len=max_len,
-	# 				dropout=dropout)
+	blstm_models = BLSTM(embeddings=emb,
+						input_dim=embsize,
+						hidden_dim=hidden_size,
+						num_layers=n_layers,
+						output_dim=2,
+						max_len=max_len,
+						dropout=dropout)
 
+	blstm_models = blstm_models.to(device)
 
+	optimizer = optim.SGD(blstm_models.parameters(), lr=l_rate, weight_decay=1e-5)
+	criterion = nn.CrossEntropyLoss()
+
+	training_set = dataset["training"]
+	# print(blstm_models)
 
 
 if __name__ == '__main__':
 	main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
