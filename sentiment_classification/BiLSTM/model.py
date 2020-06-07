@@ -93,5 +93,4 @@ class BLSTM(nn.Module):
 		sentence_batch = self.bi_fetch(sen_rnn, sen_lengths, batch_size, self.max_len)
 		# so the out is of shape (batch), (2*hidden_dim)
 		out = self.output(sentence_batch)
-		out_prob = F.softmax(out.view(batch_size, -1))
-		return out_prob
+		return out

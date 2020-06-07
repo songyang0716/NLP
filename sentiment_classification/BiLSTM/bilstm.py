@@ -17,10 +17,8 @@ n_layers = 1
 max_len = 40
 dropout = 0
 l_rate = 0.01
-epochs = 100
+epochs = 50
 input_dir = "./data/"
-
-
 
 ####################################
 #   Helper function, pad sequence  #
@@ -48,8 +46,6 @@ def get_padding(sentences, max_len):
 		# seq_len will be used in the BiLSTM model, to find the last hidden layer 
 		seq_len = np.append(seq_len, num_words)
 	return padded.astype(np.int64), seq_len.astype(np.int64)
-
-
 
 
 
@@ -84,8 +80,8 @@ class YDataset(object):
 
 	def _padding(self):
 		self.features, self.seq_lens = get_padding(self.features, max_len=self.pad_max_len)
-		print(self.seq_lens)
-		print(len(self.seq_lens))
+		# print(self.seq_lens)
+		# print(len(self.seq_lens))
 		# print(self.features)
 
 
@@ -122,8 +118,9 @@ class YDataset(object):
 		# mask_matrix = self.mask_matrix[start:end]
 		labels = self.labels[start:end]
 
-		return features, seq_lens, labels
+		return (features, seq_lens, labels)
 		
+
 
 ##############################
 #   Serialization to pickle  #
@@ -138,27 +135,52 @@ def pickle2dict(in_file):
 		return your_dict
 
 
-def train(model, training_data, args, optimizer, criterion):
+
+def train(model, training_data, optimizer, criterion):
 	model.train()
 	sentences, sentence_real_length, labels = training_data
-    assert batch_size == len(sentences) == len(labels)
+	assert batch_size == len(sentences) == len(labels)
 
-    ''' Prepare data and prediction'''
-    sentences_, sentences_seqlen_, sentences_mask_ = \
-        var_batch(args, batch_size, sentences, sentences_seqlen, sentences_mask)
+	''' Prepare data and prediction'''
 
-    labels_ = torch.LongTensor(labels)
+	sentences = torch.LongTensor(sentences).view(batch_size, max_len)
+	sentence_real_length = torch.LongTensor(sentence_real_length).view(batch_size, -1)
+
+	labels = torch.LongTensor(labels)
+
+	assert len(sentences) == len(labels)
+
+	model.zero_grad()
+	outputs = model(sentences, sentence_real_length)
+	loss = criterion(outputs.view(len(labels), -1), labels)
+
+	loss.backward()
+	optimizer.step()
 
 
-    assert len(sentences) == len(labels)
 
-    model.zero_grad()
-    probs = blstm_models(sentences_, sentences_seqlen_)
-    loss = criterion(probs.view(len(labels_), -1), labels_)
 
-    loss.backward()
-    optimizer.step()
+def test(model, dataset, data_part="validation"):
+	model.eval()
+	val_set = dataset[data_part]
+	val_set = YDataset(val_set["xIndexes"],
+					   val_set["yLabels"],
+					   to_pad=True,
+					   max_len=max_len)
+	val_batch_size = len(val_set)
+	val_sentence, val_sentence_length, val_label = val_set.next_batch(val_batch_size)
 
+	val_sentence = torch.LongTensor(val_sentence).view(val_batch_size, max_len)
+	val_sentence_length = torch.LongTensor(val_sentence_length).view(val_batch_size, -1)
+
+	output = model(val_sentence, val_sentence_length)
+	_, pred = torch.max(output, dim=1)
+
+	pred = pred.cpu().numpy()
+	# val_label = val_label.cpu().numpy()
+	# print("prediction:")
+	acc = np.sum(pred == val_label) * 1.0 / len(pred)
+	return acc
 
 
 def main():
@@ -173,7 +195,7 @@ def main():
 	emb = torch.from_numpy(emb_np)
 
 
-	blstm_models = BLSTM(embeddings=emb,
+	blstm_model = BLSTM(embeddings=emb,
 						input_dim=embsize,
 						hidden_dim=hidden_size,
 						num_layers=n_layers,
@@ -181,9 +203,9 @@ def main():
 						max_len=max_len,
 						dropout=dropout)
 
-	blstm_models = blstm_models.to(device)
+	blstm_model = blstm_model.to(device)
 
-	optimizer = optim.SGD(blstm_models.parameters(), lr=l_rate, weight_decay=1e-5)
+	optimizer = optim.SGD(blstm_model.parameters(), lr=l_rate, weight_decay=1e-5)
 	criterion = nn.CrossEntropyLoss()
 
 	training_set = dataset["training"]
@@ -195,12 +217,17 @@ def main():
 	best_acc_test, best_acc_valid = -np.inf, -np.inf
 	batches_per_epoch = int(len(training_set)/batch_size)
 
-    for epoch in range(epochs):
-    	for n_batch in range(batches_per_epoch):
-    		training_batch = training_set.next_batch(batch_size)
-    		train(model, training_batch, args, optimizer, criterion)
-
-
+	for epoch in range(epochs):
+		print("Epoch:{}".format(epoch))
+		for n_batch in range(batches_per_epoch):
+			training_batch = training_set.next_batch(batch_size)
+			train(blstm_model, training_batch, optimizer, criterion)
+		acc_val = test(blstm_model, dataset, data_part="validation")
+		acc_train = test(blstm_model, dataset, data_part="training")
+		print("The Training set prediction accuracy is {}".format(acc_train))
+		print("The validation set prediction accuracy is {}".format(acc_val))
+		print(" ")
+		
 
 
 if __name__ == '__main__':
