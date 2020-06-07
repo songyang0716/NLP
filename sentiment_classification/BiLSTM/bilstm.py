@@ -1,7 +1,8 @@
+# Reference from https://github.com/albertwy/BiLSTM/blob/master/main_batch.py
+
 import sys
 import torch
 import torch.nn as nn
-# from torch.autograd import Variable
 import torch.optim as optim
 import random
 import numpy as np
@@ -9,65 +10,115 @@ from model import BLSTM
 
 
 
-
+batch_size = 80
 embsize = 50
 hidden_size = 64
 n_layers = 1
-max_len = 20
+max_len = 40
 dropout = 0
 l_rate = 0.01
 input_dir = "./data/"
 
 
-# def var_batch(args, batch_size, sentences, sentences_seqlen, sentences_mask):
-#     """
-#     Transform the input batch to PyTorch variables
-#     :return:
-#     """
-#     # dtype = torch.from_numpy(sentences, dtype=torch.cuda.LongTensor)
-#     sentences_ = Variable(torch.LongTensor(sentences).view(batch_size, args.sen_max_len))
-#     sentences_seqlen_ = Variable(torch.LongTensor(sentences_seqlen).view(batch_size, 1))
-#     sentences_mask_ = Variable(torch.LongTensor(sentences_mask).view(batch_size, args.sen_max_len))
 
-#     if args.cuda:
-#         sentences_ = sentences_.cuda()
-#         sentences_seqlen_ = sentences_seqlen_.cuda()
-#         sentences_mask_ = sentences_mask_.cuda()
-
-#     return sentences_, sentences_seqlen_, sentences_mask_
-
-
-
-
-
-# def train(model, training_data, args, optimizer, criterion):
-#     model.train()
-
-#     batch_size = args.batch_size
-
-#     sentences, sentences_seqlen, sentences_mask, labels = training_data
-
-#     # print batch_size, len(sentences), len(labels)
-
-#     assert batch_size == len(sentences) == len(labels)
-
-#     ''' Prepare data and prediction'''
-#     sentences_, sentences_seqlen_, sentences_mask_ = \
-#         var_batch(args, batch_size, sentences, sentences_seqlen, sentences_mask)
-#     labels_ = Variable(torch.LongTensor(labels))
-#     if args.cuda:
-#         labels_ = labels_.cuda()
-
-#     assert len(sentences) == len(labels)
-
-#     model.zero_grad()
-#     probs = model(sentences_, sentences_seqlen_, sentences_mask_)
-#     loss = criterion(probs.view(len(labels_), -1), labels_)
-
-#     loss.backward()
-#     optimizer.step()
+def get_padding(sentences, max_len):
+	"""
+	:param sentences: raw sentence --> index_padded sentence
+					[2, 3, 4], 5 --> [2, 3, 4, 0, 0]
+	:param max_len: number of steps to unroll for a LSTM
+	:return: sentence of max_len size with zero paddings , and also the real lenght of each sentence (capped under max-len)
+	"""
+	seq_len = np.zeros((0,))
+	padded = np.zeros((0, max_len))
+	for sentence in sentences:
+		num_words = len(sentence)
+		num_pad = max_len - num_words
+		sentence = np.asarray(sentence[:max_len], dtype=np.int64).reshape(1, -1)
+		if num_pad > 0:
+			zero_paddings = np.zeros((1, num_pad), dtype=np.int64)
+			sentence = np.concatenate((sentence, zero_paddings), axis=1)
+		else:
+			num_words = max_len
+		padded = np.concatenate((padded, sentence), axis=0)
+		# seq_len will be used in the BiLSTM model, to find the last hidden layer 
+		seq_len = np.append(seq_len, num_words)
+	return padded.astype(np.int64), seq_len.astype(np.int64)
 
 
+
+
+
+class YDataset(object):
+	def __init__(self, features, labels, to_pad=True, max_len=40):
+		"""
+		:param features: list containing sequences to be padded and batched, all sequences are indexes of words
+		:param labels:
+		"""
+		self.features = features
+		self.labels = labels
+		self.pad_max_len = max_len
+		self.seq_lens = None
+		# self.mask_matrix = None
+
+		assert len(features) == len(self.labels)
+
+		self._num_examples = len(self.labels)
+		self._epochs_completed = 0
+		self._index_in_epoch = 0
+
+		if to_pad:
+			if max_len:
+				self._padding()
+				# self._mask()
+			else:
+				print("Need more information about padding max_length")
+
+	def __len__(self):
+		return self._num_examples
+
+
+	def _padding(self):
+		self.features, self.seq_lens = get_padding(self.features, max_len=self.pad_max_len)
+		print(self.seq_lens)
+		print(len(self.seq_lens))
+		# print(self.features)
+
+
+	def _shuffle(self, seed):
+		"""
+		After each epoch, the data need to be shuffled
+		:return:
+		"""
+		perm = np.arange(self._num_examples)
+		np.random.shuffle(perm)
+
+		self.features = self.features[perm]
+		self.seq_lens = self.seq_lens[perm]
+		# self.mask_matrix = self.mask_matrix[perm]
+		self.labels = self.labels[perm]
+
+	def next_batch(self, batch_size, seed=888):
+		"""Return the next `batch_size` examples from this data set."""
+		start = self._index_in_epoch
+		self._index_in_epoch += batch_size
+		if self._index_in_epoch > self._num_examples:
+			# Finished epoch
+			self._epochs_completed += 1
+			'''  shuffle feature and labels'''
+			self._shuffle(seed=seed)
+			start = 0
+			self._index_in_epoch = batch_size
+			assert batch_size <= self._num_examples
+
+		end = self._index_in_epoch
+
+		features = self.features[start:end]
+		seq_lens = self.seq_lens[start:end]
+		# mask_matrix = self.mask_matrix[start:end]
+		labels = self.labels[start:end]
+
+		return features, seq_lens, labels
+		
 
 ##############################
 #   Serialization to pickle  #
@@ -108,6 +159,18 @@ def main():
 	criterion = nn.CrossEntropyLoss()
 
 	training_set = dataset["training"]
+	training_set = YDataset(training_set["xIndexes"],
+							training_set["yLabels"],
+							to_pad=True,
+							max_len=max_len)
+
+	best_acc_test, best_acc_valid = -np.inf, -np.inf
+	batches_per_epoch = int(len(training_set)/batch_size)
+	# print(batches_per_epoch)
+	# print(training_set)
+
+	# print(len(training_set['xIndexes']))
+	# print(len(training_set['yLabels']))
 	# print(blstm_models)
 
 
