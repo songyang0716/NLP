@@ -17,9 +17,14 @@ n_layers = 1
 max_len = 40
 dropout = 0
 l_rate = 0.01
+epochs = 100
 input_dir = "./data/"
 
 
+
+####################################
+#   Helper function, pad sequence  #
+####################################
 
 def get_padding(sentences, max_len):
 	"""
@@ -133,6 +138,29 @@ def pickle2dict(in_file):
 		return your_dict
 
 
+def train(model, training_data, args, optimizer, criterion):
+	model.train()
+	sentences, sentence_real_length, labels = training_data
+    assert batch_size == len(sentences) == len(labels)
+
+    ''' Prepare data and prediction'''
+    sentences_, sentences_seqlen_, sentences_mask_ = \
+        var_batch(args, batch_size, sentences, sentences_seqlen, sentences_mask)
+
+    labels_ = torch.LongTensor(labels)
+
+
+    assert len(sentences) == len(labels)
+
+    model.zero_grad()
+    probs = blstm_models(sentences_, sentences_seqlen_)
+    loss = criterion(probs.view(len(labels_), -1), labels_)
+
+    loss.backward()
+    optimizer.step()
+
+
+
 def main():
 	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 	print(device)
@@ -166,12 +194,13 @@ def main():
 
 	best_acc_test, best_acc_valid = -np.inf, -np.inf
 	batches_per_epoch = int(len(training_set)/batch_size)
-	# print(batches_per_epoch)
-	# print(training_set)
 
-	# print(len(training_set['xIndexes']))
-	# print(len(training_set['yLabels']))
-	# print(blstm_models)
+    for epoch in range(epochs):
+    	for n_batch in range(batches_per_epoch):
+    		training_batch = training_set.next_batch(batch_size)
+    		train(model, training_batch, args, optimizer, criterion)
+
+
 
 
 if __name__ == '__main__':
