@@ -1,7 +1,7 @@
 import sys
 import torch
 import torch.nn as nn
-from torch.autograd import Variable
+# from torch.autograd import Variable
 import torch.optim as optim
 import random
 import numpy as np
@@ -9,6 +9,14 @@ from model import BLSTM
 
 
 
+
+embsize = 50
+hidden_size = 64
+n_layers = 1
+max_len = 20
+dropout = 0
+l_rate = 0.01
+input_dir = "./data/"
 
 
 # def var_batch(args, batch_size, sentences, sentences_seqlen, sentences_mask):
@@ -59,6 +67,8 @@ from model import BLSTM
 #     loss.backward()
 #     optimizer.step()
 
+
+
 ##############################
 #   Serialization to pickle  #
 ##############################
@@ -72,14 +82,6 @@ def pickle2dict(in_file):
 		return your_dict
 
 
-embsize = 50
-hidden_size = 64
-n_layers = 1
-max_len = 20
-dropout = 0
-l_rate = 0.01
-input_dir = "./data/"
-
 def main():
 	device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 	print(device)
@@ -91,7 +93,6 @@ def main():
 	emb_np = np.asarray(embeddings, dtype=np.float32)
 	emb = torch.from_numpy(emb_np)
 
-	print(emb.size())
 
 	blstm_models = BLSTM(embeddings=emb,
 						input_dim=embsize,
