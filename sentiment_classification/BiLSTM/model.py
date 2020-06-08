@@ -19,7 +19,7 @@ class BLSTM(nn.Module):
 		# Initial the embedding with glove
 		# padding_idx means if the input is with index 0, then padding with zero vectors
 		# https://stackoverflow.com/questions/61172400/what-does-padding-idx-do-in-nn-embeddings
-		self.emb = nn.Embedding(embeddings.size(0), embeddings.size(1), padding_idx=0)
+		self.emb = nn.Embedding(embeddings.size(0), embeddings.size(1), padding_idx=0).requires_grad_(False)
 		self.emb.weight = nn.Parameter(embeddings)
 
 		# if batch_first=True, input as (batch, seq, feature)

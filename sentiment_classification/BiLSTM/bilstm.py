@@ -17,7 +17,7 @@ n_layers = 1
 max_len = 40
 dropout = 0
 l_rate = 0.01
-epochs = 50
+epochs = 500
 input_dir = "./data/"
 
 ####################################
