@@ -7,7 +7,7 @@ class selfAttentive(nn.Module):
 	"""
 		Implementation of SELF-ATTENTIVE SENTENCE EMBEDDING for sentiment classification task
 	"""
-	def __init__(self, embeddings, input_dim, hidden_dim, num_layers, output_dim, da_dim, max_len, dropout):
+	def __init__(self, embeddings, input_dim, hidden_dim, num_layers, output_dim, da_dim, r_dim, max_len, dropout):
 		super(selfAttentive, self).__init__()
 		
 		self.max_len = max_len
@@ -15,6 +15,7 @@ class selfAttentive(nn.Module):
 		self.hidden_dim = hidden_dim
 		self.output_dim = output_dim
 		self.da_dim = da_dim
+		self.r_dim = r_dim
 
 		# Initial the embedding with glove
 		# https://stackoverflow.com/questions/61172400/what-does-padding-idx-do-in-nn-embeddings
@@ -30,14 +31,15 @@ class selfAttentive(nn.Module):
 				 			bidirectional=True)
 
 		self.W_s1 = nn.Linear(2*self.hidden_dim, self.da_dim)
-		self.W_s2 = nn.Linear(self.da_dim, 30)
+		self.W_s2 = nn.Linear(self.da_dim, self.r_dim)
 
-		# because of bidirectional LSTM, so our output layer has dimension of 2*hidden
-		self.output = nn.Linear(2*self.hidden_dim, output_dim)
+
+		self.fc_layer = nn.Linear(self.r_dim*2*self.hidden_dim, 1000)
+		self.output = nn.Linear(1000, self.output_dim)
 
 	def attention_net(self, lstm_output):
-		# use da = 350, r = 30 & penalization_coeff = 1 as per given in the self-attention original ICLR paper
-		attn_weight_matrix = self.W_s2(F.tanh(self.W_s1(lstm_output)))
+		# use da = 350, r = self.r_dim & penalization_coeff = 1 as per given in the self-attention original ICLR paper
+		attn_weight_matrix = self.W_s2(torch.tanh(self.W_s1(lstm_output)))
 		A = F.softmax(attn_weight_matrix, dim=1)
 		return A 
 
@@ -55,13 +57,18 @@ class selfAttentive(nn.Module):
 		# If (h_0, c_0) is not provided, both h_0 and c_0 default to zero.
 		sen_outs, _ = self.lstm(sen_batch.view(batch_size, -1, self.input_dim))
 		# sen_outs is with shape: batch size * seq length * 2hidden_dim
-
 		attn_weight_matrix = self.attention_net(sen_outs)
 		# attn is with shape : batch size * seq length * r
 		attn_weight_matrix = attn_weight_matrix.permute(0, 2, 1)
-
+		
+		# The hidden_matrix with dimension batch * r * 2hidden_dim
 		hidden_matrix = torch.bmm(attn_weight_matrix, sen_outs)
-		# print(hidden_matrix.shape)
+		fc_out = self.fc_layer(hidden_matrix.view(sen_batch.shape[0], -1))
+		out = self.output(fc_out)
+		return out 
+
+
+
 
 
 
