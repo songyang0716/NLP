@@ -10,7 +10,7 @@ from model import selfAttentive
 
 batch_size = 80
 embsize = 50
-da_size = 30
+da_size = 350
 hidden_size = 64
 n_layers = 1
 max_len = 40
@@ -198,7 +198,35 @@ def main():
 	emb = torch.from_numpy(emb_np)
 	# print(emb.shape)
 	# print(dataset.keys())
+	attentive = selfAttentive(embeddings=emb,
+							  input_dim=embsize,
+							  hidden_dim=hidden_size,
+							  num_layers=n_layers,
+							  output_dim=2,
+							  da_dim=da_size,
+							  max_len=max_len,
+							  dropout=dropout)
 
+	attentive = attentive.to(device)
+
+	optimizer = optim.SGD(attentive.parameters(), lr=l_rate, weight_decay=1e-5)
+	criterion = nn.CrossEntropyLoss()
+
+	training_set = dataset["training"]
+	training_set = YDataset(training_set["xIndexes"],
+							training_set["yLabels"],
+							to_pad=True,
+							max_len=max_len)
+
+	best_acc_test, best_acc_valid = -np.inf, -np.inf
+	batches_per_epoch = int(len(training_set)/batch_size)
+
+	for epoch in range(epochs):
+		print("Epoch:{}".format(epoch))
+		for n_batch in range(batches_per_epoch):
+			training_batch = training_set.next_batch(batch_size)
+			train(attentive, training_batch, optimizer, criterion)
+			break
 
 
 
