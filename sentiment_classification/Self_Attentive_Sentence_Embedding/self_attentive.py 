@@ -5,11 +5,12 @@ import torch.nn as nn
 import torch.optim as optim
 import random
 import numpy as np
-from model import self_attentive 
+from model import selfAttentive 
 
 
 batch_size = 80
 embsize = 50
+da_size = 30
 hidden_size = 64
 n_layers = 1
 max_len = 40
@@ -195,6 +196,8 @@ def main():
 
 	emb_np = np.asarray(embeddings, dtype=np.float32)
 	emb = torch.from_numpy(emb_np)
+	# print(emb.shape)
+	# print(dataset.keys())
 
 
 
