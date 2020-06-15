@@ -50,12 +50,15 @@ class BLSTM(nn.Module):
 
 		# for the index parameter, we need to put a tensor instead a integer, so we put torch.LongTensor([0])
 		fw_out = torch.index_select(rnn_outs, 2, torch.LongTensor([0]))
+		#fw_out = torch.index_select(rnn_outs, 2, torch.LongTensor([0]).cuda())
 		fw_out = fw_out.view(batch_size * max_len, -1)
 
 		bw_out = torch.index_select(rnn_outs, 2, torch.LongTensor([1]))
+		#bw_out = torch.index_select(rnn_outs, 2, torch.LongTensor([1]).cuda())
 		bw_out = bw_out.view(batch_size * max_len, -1)
 
 		batch_range = torch.LongTensor(range(batch_size)) * max_len
+		#batch_range = torch.LongTensor(range(batch_size)).cuda() * max_len
 		batch_zeros = torch.zeros(batch_size).long()
 
 		# This part is necassary, because not all the seq have max_length, for seq that shorter than 

@@ -20,6 +20,8 @@ l_rate = 0.01
 epochs = 500
 input_dir = "./data/"
 
+# torch.set_default_tensor_type('torch.cuda.FloatTensor')
+
 ####################################
 #   Helper function, pad sequence  #
 ####################################
@@ -70,7 +72,6 @@ class YDataset(object):
 		if to_pad:
 			if max_len:
 				self._padding()
-				# self._mask()
 			else:
 				print("Need more information about padding max_length")
 
@@ -147,6 +148,10 @@ def train(model, training_data, optimizer, criterion):
 	sentence_real_length = torch.LongTensor(sentence_real_length).view(batch_size, -1)
 
 	labels = torch.LongTensor(labels)
+	# sentences = torch.LongTensor(sentences).cuda().view(batch_size, max_len)
+	# sentence_real_length = torch.LongTensor(sentence_real_length).cuda().view(batch_size, -1)
+
+	# labels = torch.LongTensor(labels).cuda()
 
 	assert len(sentences) == len(labels)
 
@@ -173,6 +178,9 @@ def test(model, dataset, data_part="validation"):
 	val_sentence = torch.LongTensor(val_sentence).view(val_batch_size, max_len)
 	val_sentence_length = torch.LongTensor(val_sentence_length).view(val_batch_size, -1)
 
+	# val_sentence = torch.LongTensor(val_sentence).cuda().view(val_batch_size, max_len)
+	# val_sentence_length = torch.LongTensor(val_sentence_length).cuda().view(val_batch_size, -1)
+
 	output = model(val_sentence, val_sentence_length)
 	_, pred = torch.max(output, dim=1)
 
@@ -192,7 +200,7 @@ def main():
 	dataset["embeddings"] = embeddings
 
 	emb_np = np.asarray(embeddings, dtype=np.float32)
-	emb = torch.from_numpy(emb_np)
+	emb = torch.from_numpy(emb_np).to(device)
 
 
 	blstm_model = BLSTM(embeddings=emb,
@@ -224,6 +232,8 @@ def main():
 			train(blstm_model, training_batch, optimizer, criterion)
 		acc_val = test(blstm_model, dataset, data_part="validation")
 		acc_train = test(blstm_model, dataset, data_part="training")
+		training_accuracy.append(acc_train)
+		validation_accuracy.append(acc_val)
 		print("The Training set prediction accuracy is {}".format(acc_train))
 		print("The validation set prediction accuracy is {}".format(acc_val))
 		print(" ")

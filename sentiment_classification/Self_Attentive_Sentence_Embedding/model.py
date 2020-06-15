@@ -34,8 +34,8 @@ class selfAttentive(nn.Module):
 		self.W_s2 = nn.Linear(self.da_dim, self.r_dim)
 
 
-		self.fc_layer = nn.Linear(self.r_dim*2*self.hidden_dim, 1000)
-		self.output = nn.Linear(1000, self.output_dim)
+		self.fc_layer = nn.Linear(self.r_dim*2*self.hidden_dim, 100)
+		self.output = nn.Linear(100, self.output_dim)
 
 	def attention_net(self, lstm_output):
 		# use da = 350, r = self.r_dim & penalization_coeff = 1 as per given in the self-attention original ICLR paper

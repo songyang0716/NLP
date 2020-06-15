@@ -158,8 +158,10 @@ def processing():
 	embedding_file = "./../../data/glove.6B/glove.6B.50d.txt"
 	# read sentences & labels
 	data = [] 
-	files = ["MR.task.train",
-			 "MR.task.test"]
+	# files = ["MR.task.train",
+	# 		 "MR.task.test"]
+	files = ["IMDB.task.train",
+			 "IMDB.task.test"]
 	for file in files:
 		# sentences, labels
 		sentences = parse_file2lol(input_dir + file + ".sentences")
