@@ -237,6 +237,8 @@ def main():
 		print("The Training set prediction accuracy is {}".format(acc_train))
 		print("The validation set prediction accuracy is {}".format(acc_val))
 		print(" ")
+		# if epoch % 20 == 0:
+		# 	torch.save(blstm_model.state_dict(), 'model_50_seq_epoch_{}'.format(epoch))
 		
 
 

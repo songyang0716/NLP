@@ -14,7 +14,7 @@ da_size = 50
 hidden_size = 64
 r_size = 10
 n_layers = 1
-max_len = 40
+max_len = 50
 dropout = 0
 l_rate = 0.01
 epochs = 10
@@ -238,6 +238,8 @@ def main():
 		print("The Training set prediction accuracy is {}".format(acc_train))
 		print("The validation set prediction accuracy is {}".format(acc_val))
 		print(" ")
+		if epoch % 20 == 0:
+			torch.save(attentive.state_dict(), 'attentive_model_50_seq_epoch_{}'.format(epoch))
 
 
 
