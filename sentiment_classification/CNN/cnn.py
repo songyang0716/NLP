@@ -202,16 +202,23 @@ def main():
 
 	emb_np = np.asarray(embeddings, dtype=np.float32)
 	emb = torch.from_numpy(emb_np).to(device)
-	print(input_dir + "features_glove.pkl")
-	print(dataset.keys())
+	# print(input_dir + "features_glove.pkl")
+	# print(dataset.keys())
 
-	print(dataset['training']['xIndexes'][0])
-	print(dataset['training']['yLabels'][:20])
+	# print(dataset['training']['xIndexes'][0])
+	# print(dataset['training']['yLabels'][:20])
 
-	print(word2idx)
-	# print(dataset['embeddings'][0])
-	# print(embeddings)
-	# print(emb)
+	# unknown_words = 0
+	# total_words = 0
+	# for i in range(1000):
+	# 	sentence = dataset['training']['xIndexes'][i]
+	# 	for word in sentence:
+	# 		if word == 1:
+	# 			unknown_words += 1
+	# 		total_words += 1
+	# print(unknown_words/total_words)
+
+	
 
 
 
