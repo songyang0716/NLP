@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import random
 import numpy as np
-# from model import CNN 
+from model import CNN 
 
 
 batch_size = 80
@@ -217,8 +217,18 @@ def main():
 	# 			unknown_words += 1
 	# 		total_words += 1
 	# print(unknown_words/total_words)
+	print("abc")
+	window_size = 3
+	filter_size = 10
 
-	
+	cnn_model = CNN(embeddings=emb,
+					input_dim=embsize,
+					window_dim=window_size,
+					filter_dim=filter_size,
+					output_dim=2,
+					max_len=max_len,
+					dropout=dropout)
+
 
 
 
