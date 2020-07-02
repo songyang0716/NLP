@@ -9,12 +9,10 @@ from model import CNN
 
 batch_size = 80
 embsize = 50
-# hidden_size = 64
-# n_layers = 1
-max_len = 40
+max_len = 100
 dropout = 0
 l_rate = 0.01
-epochs = 5
+epochs = 10
 input_dir = "./../BiLSTM/data/"
 
 
@@ -248,8 +246,14 @@ def main():
 			# print(n_batch)
 			training_batch = training_set.next_batch(batch_size)
 			train(cnn_model, training_batch, optimizer, criterion)
-			print("Finished")
-			break
+
+		acc_val = test(cnn_model, dataset, data_part="validation")
+		acc_train = test(cnn_model, dataset, data_part="training")
+		print("The Training set prediction accuracy is {}".format(acc_train))
+		print("The validation set prediction accuracy is {}".format(acc_val))
+		print(" ")
+		# if epoch % 20 == 0:
+		# 	torch.save(cnn_model.state_dict(), 'attentive_model_50_seq_epoch_{}'.format(epoch))
 
 
 
