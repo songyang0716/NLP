@@ -23,6 +23,7 @@ class CNN(nn.Module):
 		self.input_dim = input_dim
 		self.window_dim = window_dim
 		self.filter_dim = filter_dim
+		self.output_dim = output_dim
 
 		# Initial the embedding with glove
 		# padding_idx means if the input is with index 0, then padding with zero vectors
@@ -38,9 +39,7 @@ class CNN(nn.Module):
 							 padding=0)
 
 		self.dropout = nn.Dropout(dropout)
-
-		# self.max_pooling = nn.MaxPool2d(kernel_size, stride=1)
-
+		self.output = nn.Linear(self.filter_dim, self.output_dim)
 
 
 	def forward(self, sen_batch, sen_lengths):
@@ -51,12 +50,15 @@ class CNN(nn.Module):
 		"""
 		''' Embedding Layer | Padding | Sequence_length 40'''
 
-		
 		sen_batch = self.emb(sen_batch) # sen_batch.size() = (batch_size, num_seq, embedding_length)
 		batch_size = len(sen_batch)
 		sen_batch = sen_batch.unsqueeze(1) # sen_batch.size() = (batch_size, 1, num_seq, embedding_length)
-		conv_out = self.cnn(sen_batch) # conv_out with shape (batch_size, filter_dim, ?, 1)
-		
+		conv_out = self.cnn(sen_batch) # conv_out.size() =  (batch_size, filter_dim, ?, 1)
+		conv_out = F.relu(conv_out.squeeze(3)) # conv_out.size() = (batch_size, filter_dim, dim)
+		max_out = F.max_pool1d(conv_out, kernel_size=conv_out.size()[2]).squeeze(2) # max_out.size() = (batch_size, filter_dim)
+		fc_in = self.dropout(max_out)
+		out = self.output(fc_in)
+		return out 
 
 
 

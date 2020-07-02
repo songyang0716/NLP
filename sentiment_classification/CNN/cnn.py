@@ -247,9 +247,8 @@ def main():
 		for n_batch in range(batches_per_epoch):
 			# print(n_batch)
 			training_batch = training_set.next_batch(batch_size)
-			print("training batch size")
-			# print(training_batch.shape)
 			train(cnn_model, training_batch, optimizer, criterion)
+			print("Finished")
 			break
 
 
