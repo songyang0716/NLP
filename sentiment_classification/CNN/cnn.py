@@ -14,7 +14,7 @@ embsize = 50
 max_len = 40
 dropout = 0
 l_rate = 0.01
-epochs = 50
+epochs = 5
 input_dir = "./../BiLSTM/data/"
 
 
@@ -142,6 +142,7 @@ def pickle2dict(in_file):
 def train(model, training_data, optimizer, criterion):
 	model.train()
 	sentences, sentence_real_length, labels = training_data
+
 	assert batch_size == len(sentences) == len(labels)
 
 	''' Prepare data and prediction'''
@@ -197,7 +198,7 @@ def main():
 
 	dataset = pickle2dict(input_dir + "features_glove.pkl")
 	embeddings = pickle2dict(input_dir + "embeddings_glove.pkl")
-	word2idx = pickle2dict(input_dir + "word2idx_glove.pkl")
+	# word2idx = pickle2dict(input_dir + "word2idx_glove.pkl")
 	dataset["embeddings"] = embeddings
 
 	emb_np = np.asarray(embeddings, dtype=np.float32)
@@ -217,7 +218,6 @@ def main():
 	# 			unknown_words += 1
 	# 		total_words += 1
 	# print(unknown_words/total_words)
-	print("abc")
 	window_size = 3
 	filter_size = 10
 
@@ -228,6 +228,29 @@ def main():
 					output_dim=2,
 					max_len=max_len,
 					dropout=dropout)
+
+	cnn_model = cnn_model.to(device)
+
+	optimizer = optim.Adam(cnn_model.parameters(), lr=l_rate, weight_decay=1e-5)
+	criterion = nn.CrossEntropyLoss()
+	training_set = dataset["training"]
+	training_set = YDataset(training_set["xIndexes"],
+							training_set["yLabels"],
+							to_pad=True,
+							max_len=max_len)
+
+	best_acc_test, best_acc_valid = -np.inf, -np.inf
+	batches_per_epoch = int(len(training_set)/batch_size)
+	print("hahah")
+	for epoch in range(epochs):
+		print("Epoch:{}".format(epoch))
+		for n_batch in range(batches_per_epoch):
+			# print(n_batch)
+			training_batch = training_set.next_batch(batch_size)
+			print("training batch size")
+			# print(training_batch.shape)
+			train(cnn_model, training_batch, optimizer, criterion)
+			break
 
 
 
