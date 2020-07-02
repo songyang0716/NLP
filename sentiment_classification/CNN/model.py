@@ -14,6 +14,7 @@ class CNN(nn.Module):
 		Arguments
 		---------
 		embeddings : Pre-trained GloVe word_embeddings which we will use to create our word_embedding look-up table
+		dropout: Probability of retaining an activation node during dropout operation
 		--------
 		
 		"""
@@ -26,17 +27,18 @@ class CNN(nn.Module):
 		# Initial the embedding with glove
 		# padding_idx means if the input is with index 0, then padding with zero vectors
 		# https://stackoverflow.com/questions/61172400/what-does-padding-idx-do-in-nn-embeddings
-		# print(embeddings.size(0))
-		# print(embeddings.size(1))
+
 		self.emb = nn.Embedding(embeddings.size(0), embeddings.size(1), padding_idx=0).requires_grad_(False)
 		self.emb.weight = nn.Parameter(embeddings)
-		# print(self.emb.size())
 
 		self.cnn = nn.Conv2d(in_channels=1,
 							 out_channels=filter_dim,
 							 kernel_size=(window_dim, embeddings.size(1)),
 							 stride=1,
 							 padding=0)
+
+		self.dropout = nn.Dropout(dropout)
+
 		# self.max_pooling = nn.MaxPool2d(kernel_size, stride=1)
 
 
@@ -49,12 +51,12 @@ class CNN(nn.Module):
 		"""
 		''' Embedding Layer | Padding | Sequence_length 40'''
 
-		# sen_batch.size() = (batch_size, num_seq, embedding_length)
-		sen_batch = self.emb(sen_batch)
+		
+		sen_batch = self.emb(sen_batch) # sen_batch.size() = (batch_size, num_seq, embedding_length)
 		batch_size = len(sen_batch)
-		# print("current input size")
-		# sen_batch.size() = (batch_size, 1, num_seq, embedding_length)
-		sen_batch = sen_batch.unsqueeze(1)
+		sen_batch = sen_batch.unsqueeze(1) # sen_batch.size() = (batch_size, 1, num_seq, embedding_length)
+		conv_out = self.cnn(sen_batch) # conv_out with shape (batch_size, filter_dim, ?, 1)
+		
 
 
 
