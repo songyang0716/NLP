@@ -1,5 +1,5 @@
 # NLP
-NLP related topics
 
-Sentiment Classification
+Sentiment Classification \b
+
 I implemented CNN, BiLSTM and LSTM with attention model
