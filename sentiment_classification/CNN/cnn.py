@@ -11,7 +11,7 @@ batch_size = 80
 embsize = 50
 max_len = 100
 dropout = 0
-l_rate = 0.01
+l_rate = 0.001
 epochs = 10
 input_dir = "./../BiLSTM/data/"
 
@@ -239,7 +239,7 @@ def main():
 
 	best_acc_test, best_acc_valid = -np.inf, -np.inf
 	batches_per_epoch = int(len(training_set)/batch_size)
-	print("hahah")
+
 	for epoch in range(epochs):
 		print("Epoch:{}".format(epoch))
 		for n_batch in range(batches_per_epoch):

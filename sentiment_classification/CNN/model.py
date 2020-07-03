@@ -60,18 +60,3 @@ class CNN(nn.Module):
 		out = self.output(fc_in)
 		return out 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
