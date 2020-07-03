@@ -1,5 +1,9 @@
 # NLP
 
-Sentiment Classification \b
+Sentiment Classification:
 
-I implemented CNN, BiLSTM and LSTM with attention model
+Implemented CNN, BiLSTM and LSTM with attention model
+
+Natural Language Inference
+
+Implemented ESIM model
