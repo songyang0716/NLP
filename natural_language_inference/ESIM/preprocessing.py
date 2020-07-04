@@ -3,13 +3,15 @@ import sys
 import numpy as np
 import random
 import re
+import os
+import pickle
 # from string import maketrans
 from string import punctuation
 from torch.utils.data import Dataset
 from collections import Counter
 import torch 
 
-class preprocessor(object):
+class Preprocessor(object):
 	"""
 	Preprocessor class for natural language inference
 
@@ -346,29 +348,71 @@ class NLIDataset(Dataset):
 		return self.num_sequences
 
 
-def dict2pickle(your_dict, out_file):
-	try:
-		import cPickle as pickle
-	except ImportError:
-		import pickle
-	with open(out_file, 'wb') as f:
-		pickle.dump(your_dict, f)
+# def dict2pickle(your_dict, out_file):
+# 	try:
+# 		import cPickle as pickle
+# 	except ImportError:
+# 		import pickle
+# 	with open(out_file, 'wb') as f:
+# 		pickle.dump(your_dict, f)
 
 
 def main():
-	snli_text_path = "./../data/snli_1.0/snli_1.0_train.txt"
+	snli_text_train_path = "./../data/snli_1.0/snli_1.0_train.txt"
+	snli_text_dev_path = "./../data/snli_1.0/snli_1.0_dev.txt"
+	snli_text_test_path = "./../data/snli_1.0/snli_1.0_test.txt"
+
 	embedding_file = "./../../data/glove.6B/glove.6B.50d.txt"
 	output_dir = "./../data/"
 
-	processor = preprocessor(num_words=10000)
-	res = processor.read_data(snli_text_path)
+	# -------------------- Train data preprocessing -------------------- #
+	preprocessor = Preprocessor(num_words=10000)
+	data = preprocessor.read_data(snli_text_train_path)
 
-	processor.build_worddict(res)
-	res_2 = processor.transform_to_indices(res)
-	embedding_matrix = processor.build_embedding_matrix(embedding_file)
+	preprocessor.build_worddict(data)
+	# res_2 = processor.transform_to_indices(res)
+	# embedding_matrix = processor.build_embedding_matrix(embedding_file)
 	
-	dict2pickle(res_2, output_dir + "snli_clean_text.pkl")
-	dict2pickle(embedding_matrix, output_dir + "embedding_matrix.pkl")
+	with open(os.path.join(output_dir, "worddict.pkl"), "wb") as pkl_file:
+		pickle.dump(preprocessor.worddict, pkl_file)
+
+	print("\t* Transforming words in premises and hypotheses to indices...")
+	transformed_data = preprocessor.transform_to_indices(data)
+	print("\t* Saving result...")
+	with open(os.path.join(output_dir, "train_data.pkl"), "wb") as pkl_file:
+		pickle.dump(transformed_data, pkl_file)
+
+
+	# -------------------- Validation data preprocessing -------------------- #
+	print(20*"=", " Preprocessing dev set ", 20*"=")
+	print("\t* Reading data...")
+	data = preprocessor.read_data(snli_text_dev_path)
+
+	print("\t* Transforming words in premises and hypotheses to indices...")
+	transformed_data = preprocessor.transform_to_indices(data)
+	print("\t* Saving result...")
+	with open(os.path.join(output_dir, "dev_data.pkl"), "wb") as pkl_file:
+		pickle.dump(transformed_data, pkl_file)
+
+	# -------------------- Test data preprocessing -------------------- #
+	print(20*"=", " Preprocessing test set ", 20*"=")
+	print("\t* Reading data...")
+	data = preprocessor.read_data(snli_text_test_path)
+
+	print("\t* Transforming words in premises and hypotheses to indices...")
+	transformed_data = preprocessor.transform_to_indices(data)
+	print("\t* Saving result...")
+	with open(os.path.join(output_dir, "test_data.pkl"), "wb") as pkl_file:
+		pickle.dump(transformed_data, pkl_file)
+
+
+
+	# -------------------- Embeddings preprocessing -------------------- #
+	print(20*"=", " Preprocessing embeddings ", 20*"=")
+	print("\t* Building embedding matrix and saving it...")
+	embed_matrix = preprocessor.build_embedding_matrix(embedding_file)
+	with open(os.path.join(output_dir, "embeddings.pkl"), "wb") as pkl_file:
+		pickle.dump(embed_matrix, pkl_file)
 
 
 
