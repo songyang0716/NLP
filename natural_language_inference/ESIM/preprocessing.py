@@ -1,12 +1,13 @@
-# Reference code https://github.com/coetaur0/ESIM
+# Reference code: https://github.com/coetaur0/ESIM
 import sys
 import numpy as np
 import random
 import re
 # from string import maketrans
 from string import punctuation
-
+from torch.utils.data import Dataset
 from collections import Counter
+import torch 
 
 class preprocessor(object):
 	"""
@@ -267,50 +268,109 @@ class preprocessor(object):
 		return embedding_matrix
 
 
-
+# Custom dataset. inherit Dataset and override the following methods:
+# __len__ so that len(dataset) returns the size of the dataset.
+# __getitem__ to support the indexing such that dataset[i] can be used to get ith sample
 class NLIDataset(Dataset):
-    """
-    Dataset class for Natural Language Inference datasets.
-    The class can be used to read preprocessed datasets where the premises,
-    hypotheses and labels have been transformed to unique integer indices
-    (this can be done with the 'preprocess_data' script in the 'scripts'
-    folder of this repository).
-    """
-    
+	"""
+	Dataset class for Natural Language Inference datasets.
+	The class can be used to read preprocessed datasets where the premises,
+	hypotheses and labels have been transformed to integer indices
+	"""
+	def __init__(self,
+				 data,
+				 padding_idx=0,
+				 max_premise_length=None,
+				 max_hypothesis_length=None):
+		"""
+		Args:
+			data: A dictionary containing the preprocessed premises,
+				hypotheses and labels of some dataset.
+			padding_idx: An integer indicating the index being used for the
+				padding token in the preprocessed data. Defaults to 0.
+			max_premise_length: An integer indicating the maximum length
+				accepted for the sequences in the premises. If set to None,
+				the length of the longest premise in 'data' is used.
+				Defaults to None.
+			max_hypothesis_length: An integer indicating the maximum length
+				accepted for the sequences in the hypotheses. If set to None,
+				the length of the longest hypothesis in 'data' is used.
+				Defaults to None.
+		"""
+		self.premises_lengths = [len(seq) for seq in data["premises"]]
+		self.max_premise_length = max_premise_length
+		if self.max_premise_length is None:
+			self.max_premise_length = max(self.premises_lengths)
 
-    
+
+		self.hypotheses_lengths = [len(seq) for seq in data["hypotheses"]]
+		self.max_hypothesis_length = max_hypothesis_length
+		if self.max_hypothesis_length is None:
+			self.max_hypothesis_length = max(self.hypotheses_lengths)
+		
+		# print(self.max_premise_length)
+		# print(self.max_hypothesis_length)
+		self.num_sequences = len(data["premises"])
+
+		self.data = {"ids": [],
+					 "premises": torch.zeros((self.num_sequences,
+											  self.max_premise_length),
+											  dtype=torch.long),
+					 "hypotheses": torch.zeros((self.num_sequences,
+												self.max_hypothesis_length),
+												dtype=torch.long),
+					 "labels": torch.tensor(data["labels"], 
+											dtype=torch.long)}
+
+		for i in range(self.num_sequences):
+			self.data["ids"].append(data["ids"][i])
+
+			end = min(len(data["premises"][i]), self.max_premise_length)
+			self.data["premises"][i][:end] = torch.tensor(data["premises"][i][:end])
+
+			end = min(len(data["hypotheses"][i]), self.max_premise_length)
+			self.data["hypotheses"][i][:end] = torch.tensor(data["hypotheses"][i][:end])
+
+	def __getitem__(self, index):
+		return {"id": self.data["ids"][index],
+				"premise": self.data["premises"][index],
+				"premise_length": min(self.premises_lengths[index],
+									  self.max_premise_length),
+				"hypothesis": self.data["hypotheses"][index],
+				"hypothesis_length": min(self.hypotheses_lengths[index],
+										 self.max_hypothesis_length),
+				"label": self.data["labels"][index]}
+
+
+	def __len__(self):
+		return self.num_sequences
+
+
+def dict2pickle(your_dict, out_file):
+	try:
+		import cPickle as pickle
+	except ImportError:
+		import pickle
+	with open(out_file, 'wb') as f:
+		pickle.dump(your_dict, f)
 
 
 def main():
 	snli_text_path = "./../data/snli_1.0/snli_1.0_train.txt"
 	embedding_file = "./../../data/glove.6B/glove.6B.50d.txt"
+	output_dir = "./../data/"
 
-	processor = preprocessor(num_words=1000)
+	processor = preprocessor(num_words=10000)
 	res = processor.read_data(snli_text_path)
-	# print(res['labels'][:10])
-	# print(res['premises'][:10])
-	# print(res['hypotheses'][:10])
-	# print(res['ids'][:10])
+
 	processor.build_worddict(res)
 	res_2 = processor.transform_to_indices(res)
 	embedding_matrix = processor.build_embedding_matrix(embedding_file)
-	# print(res_2['labels'][:10])
-	# print(res_2['premises'][:10])
-	# print(res_2['hypotheses'][:10])
-	# print(res_2['ids'][:10])
+	
+	dict2pickle(res_2, output_dir + "snli_clean_text.pkl")
+	dict2pickle(embedding_matrix, output_dir + "embedding_matrix.pkl")
 
 
 
 if __name__ == '__main__':
 	main()
-
-
-
-
-
-
-
-
-
-
-		
