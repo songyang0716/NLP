@@ -43,9 +43,9 @@ def train(model,
 	batch_time_avg = 0.0
 	running_loss = 0.0
 	correct_preds = 0
-	tqdm_batch_iterator = tqdm(dataloader)
+	# tqdm_batch_iterator = tqdm(dataloader)
 
-	for batch_index, batch in enumerate(tqdm_batch_iterator):
+	for batch_index, batch in enumerate(dataloader):
 		batch_start = time.time()
 
 		# Move input and output data to the GPU if it is used.
@@ -61,10 +61,22 @@ def train(model,
 							  premises_lengths,
 							  hypotheses,
 							  hypotheses_lengths)
+		
 		loss = criterion(logits, labels)
 		loss.backward()
 
+		# nn.utils.clip_grad_norm_(model.parameters(), max_gradient_norm)
+		optimizer.step()
+		batch_time_avg += time.time() - batch_start
+		running_loss += loss.item()
+		correct_preds += correct_predictions(probs, labels)
 
+
+	epoch_time = time.time() - epoch_start
+	epoch_loss = running_loss / len(dataloader)
+	epoch_accuracy = correct_preds / len(dataloader.dataset)
+
+	return epoch_time, epoch_loss, epoch_accuracy
 
 	
 def main(train_file,
@@ -174,10 +186,16 @@ def main(train_file,
 													   epoch,
 													   max_grad_norm)
 
-		# nn.utils.clip_grad_norm_(model.parameters(), max_gradient_norm)
-		optimizer.step()
-		
-		
+
+
+		train_losses.append(epoch_loss)
+		print("-> Training time: {:.4f}s, loss = {:.4f}, accuracy: {:.4f}%"
+			  .format(epoch_time, epoch_loss, (epoch_accuracy*100)))
+		# description = "Avg. batch proc. time: {:.4f}s, loss: {:.4f}"\
+		#               .format(batch_time_avg/(batch_index+1),
+		#                       running_loss/(batch_index+1))
+		# tqdm_batch_iterator.set_description(description)	
+
 
 if __name__ == '__main__':
 	main(train_file='./../data/train_data.pkl',
