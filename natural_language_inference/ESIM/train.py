@@ -191,10 +191,7 @@ def main(train_file,
 		train_losses.append(epoch_loss)
 		print("-> Training time: {:.4f}s, loss = {:.4f}, accuracy: {:.4f}%"
 			  .format(epoch_time, epoch_loss, (epoch_accuracy*100)))
-		# description = "Avg. batch proc. time: {:.4f}s, loss: {:.4f}"\
-		#               .format(batch_time_avg/(batch_index+1),
-		#                       running_loss/(batch_index+1))
-		# tqdm_batch_iterator.set_description(description)	
+		
 
 
 if __name__ == '__main__':
