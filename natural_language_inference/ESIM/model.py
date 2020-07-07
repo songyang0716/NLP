@@ -19,7 +19,11 @@ def get_mask(sequences_batch, sequences_lengths):
 		A mask of size (batch, max_sequence_length), where max_sequence_length
 		is the length of the longest sequence in the batch.
 	"""
-
+	batch_size = sequences_batch.size()[0]
+	max_length = torch.max(sequences_lengths)
+	mask = torch.ones(batch_size, max_length, dtype=torch.float)
+	mask[sequences_batch[:, :max_length] == 0] = 0.0
+	return mask
 
 	
 class Seq2SeqEncoder(nn.Module):
