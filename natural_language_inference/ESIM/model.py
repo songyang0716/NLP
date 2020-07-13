@@ -17,7 +17,7 @@ def get_mask(sequences_batch, sequences_lengths):
 			'sequences_batch'. Must be of size (batch).
 	Returns:
 		A mask of size (batch, max_sequence_length), where max_sequence_length
-		is the length of the longest sequence in the batch.
+		is the length of the longest sequence in the batch. padding cells are 0, non-padding cells are 1
 	"""
 	batch_size = sequences_batch.size()[0]
 	max_length = torch.max(sequences_lengths)
@@ -79,6 +79,26 @@ class Seq2SeqEncoder(nn.Module):
 							 bidirectional=self.bidirectional)
 
 
+class SoftmaxAttention(nn.Module):
+	"""
+	Attention layer taking premises and hypotheses encoded by an RNN as input
+	and computing the soft attention between their elements.
+	The dot product of the encoded vectors in the premises and hypotheses is
+	first computed. The softmax of the result is then used in a weighted sum
+	of the vectors of the premises for each element of the hypotheses, and
+	conversely for the elements of the premises.
+	"""
+	def forward(self,
+				premise_batch,
+				premise_mask,
+				hypothesis_batch,
+				hypothesis_mask):
+		"""
+		
+
+
+	 
+
 class ESIM(nn.Module):
 	"""
 		Implementation of CNN for classification
@@ -109,6 +129,13 @@ class ESIM(nn.Module):
 		self._encoding = Seq2SeqEncoder(self.embedding_dim,
 										self.hidden_size,
 										bidirectional=True)
+
+		self._attention = SoftmaxAttention()
+
+		self._composition = Seq2SeqEncoder(self.hidden_size,
+										   self.hidden_size,
+										   bidirectional=True)
+
 
 
 	def forward(self,
@@ -144,5 +171,7 @@ class ESIM(nn.Module):
 										  premises_lengths)
 		encoded_hypotheses = self._encoding(embedded_hypotheses,
 											hypotheses_lengths)
+
+
 		
 
