@@ -25,7 +25,47 @@ def get_mask(sequences_batch, sequences_lengths):
 	mask[sequences_batch[:, :max_length] == 0] = 0.0
 	return mask
 
+
+# https://github.com/allenai/allennlp/blob/master/allennlp/nn/util.py.
+def masked_softmax(tensor, mask):
+	"""
+	Apply a masked softmax on the last dimension of a tensor.
+	The input tensor and mask should be of size (batch, *, sequence_length).
+	Args:
+		tensor: The tensor on which the softmax function must be applied along
+			the last dimension.
+		mask: A mask of the same size as the tensor with 0s in the positions of
+			the values that must be masked and 1s everywhere else.
+	Returns:
+		A tensor of the same size as the inputs containing the result of the
+		softmax.
+	"""
+	# tensor size is batch * sequence_hy * sequence_pre (fromo the first masked_softmax function)
+	tensor_shape = tensor.size()
+
+	# reshape size _ * sequence_pre
+	reshaped_tensor = tensor.view(-1, tensor_shape[-1])
+
+	# Reshape the mask so it matches the size of the input tensor.
+	# mask dim is batch * sequence_pre
+	while mask.dim() < tensor.dim():
+		mask = mask.unsqueeze(1)
+
+	# mask with shape batch * sequence_hy * sequence_pre
+	# in this case, for each dim of sequence_hy, should have a copy of mask
+	mask = mask.expand_as(tensor).contiguous().float()
+	# mask is _ * sequence_pre
+	reshaped_mask = mask.view(-1, mask.size()[-1])
+
+	result = nn.functional.softmax(reshaped_tensor * reshaped_mask, dim=-1)
+	result = result * reshaped_mask
+	# 1e-13 is added to avoid divisions by zero.
+	result = result / (result.sum(dim=-1, keepdim=True) + 1e-13)
+
+	return result.view(*tensor_shape)
 	
+
+
 class Seq2SeqEncoder(nn.Module):
 	"""
 	RNN taking variable length padded sequences of vectors as input and
@@ -94,9 +134,32 @@ class SoftmaxAttention(nn.Module):
 				hypothesis_batch,
 				hypothesis_mask):
 		"""
-		
+		Args:
+			premise_batch: A batch of sequences of vectors representing the
+				premises in some NLI task. The batch is assumed to have the
+				size (batch, sequences, vector_dim).
+			premise_mask: A mask for the sequences in the premise batch, to
+				ignore padding data in the sequences during the computation of
+				the attention.
+			hypothesis_batch: A batch of sequences of vectors representing the
+				hypotheses in some NLI task. The batch is assumed to have the
+				size (batch, sequences, vector_dim).
+			hypothesis_mask: A mask for the sequences in the hypotheses batch,
+				to ignore padding data in the sequences during the computation
+				of the attention.
+		Returns:
+			attended_premises: The sequences of attention vectors for the
+				premises in the input batch.
+			attended_hypotheses: The sequences of attention vectors for the
+				hypotheses in the input batch.
+		"""		
+		# Dot product between premises and hypotheses in each sequence of
+		# the batch
+		similarity_matrix = premise_batch.bmm(hypothesis_batch.transpose(2, 1))
 
-
+		# Softmax attention weights.
+		prem_hyp_attn = masked_softmax(similarity_matrix, hypothesis_mask)
+		hyp_prem_attn = masked_softmax(similarity_matrix.transpose(1, 2), premise_mask)
 	 
 
 class ESIM(nn.Module):
