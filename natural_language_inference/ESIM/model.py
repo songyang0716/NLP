@@ -40,7 +40,7 @@ def masked_softmax(tensor, mask):
 		A tensor of the same size as the inputs containing the result of the
 		softmax.
 	"""
-	# tensor size is batch * sequence_hy * sequence_pre (fromo the first masked_softmax function)
+	# tensor size is batch * sequence_hy * sequence_pre (from the first masked_softmax function)
 	tensor_shape = tensor.size()
 
 	# reshape size _ * sequence_pre
@@ -51,7 +51,7 @@ def masked_softmax(tensor, mask):
 	while mask.dim() < tensor.dim():
 		mask = mask.unsqueeze(1)
 
-	# mask with shape batch * sequence_hy * sequence_pre
+	# reshape mask with shape batch * sequence_hy * sequence_pre
 	# in this case, for each dim of sequence_hy, should have a copy of mask
 	mask = mask.expand_as(tensor).contiguous().float()
 	# mask is _ * sequence_pre
@@ -66,6 +66,31 @@ def masked_softmax(tensor, mask):
 	
 
 
+# Code widely inspired from:
+# https://github.com/allenai/allennlp/blob/master/allennlp/nn/util.py.
+def weighted_sum(tensor, weights, mask):
+    """
+    Apply a weighted sum on the vectors along the last dimension of 'tensor',
+    and mask the vectors in the result with 'mask'.
+    Args:
+        tensor: A tensor of vectors on which a weighted sum must be applied.
+        weights: The weights to use in the weighted sum.
+        mask: A mask to apply on the result of the weighted sum.
+    Returns:
+        A new tensor containing the result of the weighted sum after the mask
+        has been applied on it.
+    """
+    weighted_sum = weights.bmm(tensor)
+
+    while mask.dim() < weighted_sum.dim():
+        mask = mask.unsqueeze(1)
+    mask = mask.transpose(-1, -2)
+    mask = mask.expand_as(weighted_sum).contiguous().float()
+
+    return weighted_sum * mask
+
+
+    
 class Seq2SeqEncoder(nn.Module):
 	"""
 	RNN taking variable length padded sequences of vectors as input and
@@ -161,6 +186,18 @@ class SoftmaxAttention(nn.Module):
 		prem_hyp_attn = masked_softmax(similarity_matrix, hypothesis_mask)
 		hyp_prem_attn = masked_softmax(similarity_matrix.transpose(1, 2), premise_mask)
 	 
+		# Weighted sums of the hypotheses for the the premises attention,
+		# and vice-versa for the attention of the hypotheses.
+		attended_premises = weighted_sum(hypothesis_batch,
+										 prem_hyp_attn,
+										 premise_mask)
+
+		attended_hypotheses = weighted_sum(premise_batch,
+										   hyp_prem_attn,
+										   hypothesis_mask)
+
+		return attended_premises, attended_hypotheses
+		
 
 class ESIM(nn.Module):
 	"""
@@ -236,5 +273,5 @@ class ESIM(nn.Module):
 											hypotheses_lengths)
 
 
-		
+
 
