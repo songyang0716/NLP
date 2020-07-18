@@ -69,28 +69,28 @@ def masked_softmax(tensor, mask):
 # Code widely inspired from:
 # https://github.com/allenai/allennlp/blob/master/allennlp/nn/util.py.
 def weighted_sum(tensor, weights, mask):
-    """
-    Apply a weighted sum on the vectors along the last dimension of 'tensor',
-    and mask the vectors in the result with 'mask'.
-    Args:
-        tensor: A tensor of vectors on which a weighted sum must be applied.
-        weights: The weights to use in the weighted sum.
-        mask: A mask to apply on the result of the weighted sum.
-    Returns:
-        A new tensor containing the result of the weighted sum after the mask
-        has been applied on it.
-    """
-    weighted_sum = weights.bmm(tensor)
+	"""
+	Apply a weighted sum on the vectors along the last dimension of 'tensor',
+	and mask the vectors in the result with 'mask'.
+	Args:
+		tensor: A tensor of vectors on which a weighted sum must be applied.
+		weights: The weights to use in the weighted sum.
+		mask: A mask to apply on the result of the weighted sum.
+	Returns:
+		A new tensor containing the result of the weighted sum after the mask
+		has been applied on it.
+	"""
+	weighted_sum = weights.bmm(tensor)
 
-    while mask.dim() < weighted_sum.dim():
-        mask = mask.unsqueeze(1)
-    mask = mask.transpose(-1, -2)
-    mask = mask.expand_as(weighted_sum).contiguous().float()
+	while mask.dim() < weighted_sum.dim():
+		mask = mask.unsqueeze(1)
+	mask = mask.transpose(-1, -2)
+	mask = mask.expand_as(weighted_sum).contiguous().float()
 
-    return weighted_sum * mask
+	return weighted_sum * mask
 
 
-    
+
 class Seq2SeqEncoder(nn.Module):
 	"""
 	RNN taking variable length padded sequences of vectors as input and
@@ -236,8 +236,15 @@ class ESIM(nn.Module):
 										   self.hidden_size,
 										   bidirectional=True)
 
+		self._projection = nn.Sequential(nn.Linear(4*2*self.hidden_size,
+												   self.hidden_size),
+										 nn.ReLU())
 
-
+		self._composition = Seq2SeqEncoder(nn.LSTM,
+										   self.hidden_size,
+										   self.hidden_size,
+										   bidirectional=True)
+		
 	def forward(self,
 				premises,
 				premises_lengths,
@@ -271,6 +278,32 @@ class ESIM(nn.Module):
 										  premises_lengths)
 		encoded_hypotheses = self._encoding(embedded_hypotheses,
 											hypotheses_lengths)
+
+
+		attended_premises, attended_hypotheses =\
+			self._attention(encoded_premises, premises_mask,
+							encoded_hypotheses, hypotheses_mask)
+			
+		enhanced_premises = torch.cat([encoded_premises,
+									   attended_premises,
+									   encoded_premises - attended_premises,
+									   encoded_premises * attended_premises],
+									  dim=-1)
+		 
+
+		enhanced_hypotheses = torch.cat([encoded_hypotheses,
+										 attended_hypotheses,
+										 encoded_hypotheses - attended_hypotheses,
+										 encoded_hypotheses * attended_hypotheses],
+										dim=-1)
+
+		projected_premises = self._projection(enhanced_premises)
+		projected_hypotheses = self._projection(enhanced_hypotheses)
+
+		v_ai = self._composition(projected_premises, premises_lengths)
+		v_bj = self._composition(projected_hypotheses, hypotheses_lengths)
+
+
 
 
 
