@@ -1,28 +1,5 @@
-import time
-import pickle
-
-import numpy as np
-import random
-from collections import Counter
-
-import spacy
 import torch
 import torch.nn as nn
-import torch.optim as optim
-
-# Set device
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-
-# Hyperparameter
-input_size = 50
-num_classes = 3
-num_layers = 1
-hidden_size = 256
-embedding_size = 50
-learning_rate = 0.001
-batch_size = 64
-num_epochs = 2
 
 
 # Create RNN to encode hypothesis and premise
@@ -30,13 +7,19 @@ class Sentence_RNN(nn.Module):
     """
         Sentence RNN
     """
-    def __init__(self, input_size, hidden_size, num_classes, embeddings):
+    def __init__(self,
+                 input_size,
+                 hidden_size,
+                 num_classes,
+                 embeddings,
+                 embedding_size,
+                 num_layers):
         super(Sentence_RNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_classes = num_classes
         self.input_size = input_size
         self.emb = nn.Embedding.from_pretrained(embeddings=embeddings,
-            freeze=True)
+                                                freeze=True)
         self.rnn_hyp = nn.RNN(input_size=embedding_size,
                               hidden_size=hidden_size,
                               num_layers=num_layers,
@@ -45,7 +28,7 @@ class Sentence_RNN(nn.Module):
                                hidden_size=hidden_size,
                                num_layers=num_layers,
                                batch_first=True)
-        self.fc1 = nn.Linear(2*hidden_size, 500)
+        self.fc1 = nn.Linear(2 * hidden_size, 500)
         self.fc2 = nn.Linear(500, num_classes)
         self.activation = nn.ReLU()
 
@@ -62,9 +45,9 @@ class Sentence_RNN(nn.Module):
 
         hyp_hn = torch.squeeze(hyp_hn)
         prem_hn = torch.squeeze(prem_hn)
-        print(hyp_hn.size())
 
-        combined_out = torch.cat((hyp_hn, prem_hn), dim=0)
+        combined_out = torch.cat((hyp_hn, prem_hn), dim=1)
+
         second_last_out = self.activation(self.fc1(combined_out))
         out = self.fc2(second_last_out)
-
+        return out
