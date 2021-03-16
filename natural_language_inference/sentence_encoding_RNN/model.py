@@ -8,7 +8,6 @@ class Sentence_RNN(nn.Module):
         Sentence RNN
     """
     def __init__(self,
-                 input_size,
                  hidden_size,
                  num_classes,
                  embeddings,
@@ -17,7 +16,6 @@ class Sentence_RNN(nn.Module):
         super(Sentence_RNN, self).__init__()
         self.hidden_size = hidden_size
         self.num_classes = num_classes
-        self.input_size = input_size
         self.emb = nn.Embedding.from_pretrained(embeddings=embeddings,
                                                 freeze=True)
         self.rnn_hyp = nn.RNN(input_size=embedding_size,
