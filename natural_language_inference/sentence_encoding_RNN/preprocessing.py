@@ -1,4 +1,4 @@
-import torch 
+import torch
 import torch.nn as nn
 import torch.optim as optim
 
@@ -6,7 +6,7 @@ from torchtext.data import Field
 from torchtext.data import BucketIterator
 
 from torchtext.datasets import SNLI
-from model import Sentence_RNN
+from model import Sentence_RNN, Sentence_LSTM
 
 # Set device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -22,12 +22,12 @@ train_data, validation_data, test_data = SNLI.split(fields=(inputs, answers))
 inputs.build_vocab(train_data, min_freq=2, vectors='glove.6B.50d')
 answers.build_vocab(train_data)
 
-# Embedding dataset 
-#inputs.vocab.vectors.size()
+# Embedding dataset
+# inputs.vocab.vectors.size()
 # Index of the word "the"
 
 # word => index
-#TEXT.vocab.stoi["the"] # => 2
+# TEXT.vocab.stoi["the"] # => 2
 
 pretrained_embeddings = inputs.vocab.vectors
 
@@ -39,26 +39,53 @@ train_iterator, validation_iterator, test_iterator = BucketIterator.splits(
 # Hyperparameter
 num_classes = 3
 num_layers = 1
-hidden_size = 256
-embedding_size = 50
+hidden_size = 100
+embedding_size = 300
 learning_rate = 0.001
 batch_size = 64
-num_epochs = 2
+num_epochs = 100
 
 # input_size, hidden_size, num_classes, embeddings
 # Initialize network
-model = Sentence_RNN(hidden_size,
-                     num_classes,
-                     inputs.vocab.vectors,
-                     embedding_size,
-                     num_layers).to(device)
+# model = Sentence_RNN(hidden_size,
+#                      num_classes,
+#                      inputs.vocab.vectors,
+#                      embedding_size,
+#                      num_layers).to(device)
+model = Sentence_LSTM(hidden_size,
+                      num_classes,
+                      inputs.vocab.vectors,
+                      embedding_size,
+                      num_layers).to(device)
 
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
+
+# Check for the accuracy on the test and val to see the model performance
+def check_accuracy(validation_iterator, model):
+    num_correct = 0
+    num_sample = 0
+
+    with torch.no_grad():
+        for val_batch_idx, val_batch in enumerate(validation_iterator):
+            val_hyp = val_batch.hypothesis
+            val_prem = val_batch.premise
+
+            val_target = val_batch.label - 1
+            scores = model(val_hyp, val_prem)
+            # return the indices of each prediction
+            _, predictions = scores.max(1)
+            num_correct += (predictions == val_target).sum()
+            num_sample += predictions.size(0)
+        acc = (num_correct / num_sample)
+        print("The val set accuracy is {}".format(acc))
+    return acc
+
+
 # Train Network
-for epoch in range(100):
+for epoch in range(num_epochs):
     for batch_idx, batch in enumerate(train_iterator):
         model.train()
         # data
@@ -84,31 +111,6 @@ for epoch in range(100):
             print(loss)
             check_accuracy(validation_iterator, model)
 
-
-# Check for the accuracy on the test and val to see the model performance
-
-def check_accuracy(validation_iterator, model):
-    num_correct = 0
-    num_sample = 0
-    # model.eval()
-
-    with torch.no_grad():
-        for val_batch_idx, val_batch in enumerate(validation_iterator):
-            val_hyp = val_batch.hypothesis
-            val_prem = val_batch.premise
-
-            val_target = val_batch.label - 1
-            scores = model(val_hyp, val_prem)
-            # return the indices of each prediction
-            _, predictions = scores.max(1)
-            num_correct += (predictions == val_target).sum()
-            num_sample += predictions.size(0)
-        acc = (num_correct / num_sample)
-        print("The val set accuracy is {}".format(acc))
-    # model.train()
-    return acc
-
-    # model.train()
 
 # pick one batch, and try to overfit this batch
 # (premise_first, hypothesis_first, label_first), _ = next(iter(train_iterator))
