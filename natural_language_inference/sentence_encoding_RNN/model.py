@@ -89,8 +89,8 @@ class Sentence_LSTM(nn.Module):
         hyp_embedding_layer = self.emb(hyp_batch)
         prem_embedding_layer = self.emb(premise_batch)
 
-        hyp_out, hyp_hn, hyp_cn = self.lstm_hyp(hyp_embedding_layer)
-        prem_out, prem_hn, prem_cn = self.lstm_prem(prem_embedding_layer)
+        hyp_out, (hyp_hn, hyp_cn) = self.lstm_hyp(hyp_embedding_layer)
+        prem_out, (prem_hn, prem_cn) = self.lstm_prem(prem_embedding_layer)
 
         hyp_hn = torch.squeeze(hyp_hn)
         prem_hn = torch.squeeze(prem_hn)

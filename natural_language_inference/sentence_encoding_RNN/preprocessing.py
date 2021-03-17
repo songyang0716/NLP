@@ -16,10 +16,10 @@ inputs = Field(lower=True, tokenize='spacy', batch_first=True)
 answers = Field(sequential=False)
 
 # make splits for data
-train_data, validation_data, test_data = SNLI.split(fields=(inputs, answers))
+train_data, validation_data, test_data = SNLI.splits(text_field=inputs, label_field=answers)
 
 # build the vocabulary
-inputs.build_vocab(train_data, min_freq=2, vectors='glove.6B.50d')
+inputs.build_vocab(train_data, min_freq=2, vectors='glove.6B.300d')
 answers.build_vocab(train_data)
 
 # Embedding dataset
