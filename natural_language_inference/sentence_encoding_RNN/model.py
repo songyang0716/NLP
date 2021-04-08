@@ -7,6 +7,7 @@ class Sentence_RNN(nn.Module):
     """
         Sentence RNN
     """
+
     def __init__(self,
                  hidden_size,
                  num_classes,
@@ -56,6 +57,7 @@ class Sentence_LSTM(nn.Module):
         Originally implemented in the paper
              "A large annotated corpus for learning natural language inference"
     """
+
     def __init__(self,
                  hidden_size,
                  num_classes,
