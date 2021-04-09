@@ -19,13 +19,13 @@ answers = Field(sequential=False)
 train_data, validation_data, test_data = SNLI.splits(text_field=inputs, label_field=answers)
 
 # build the vocabulary
+# https://github.com/pytorch/text/blob/master/torchtext/legacy/data/field.py
 inputs.build_vocab(train_data, min_freq=2, vectors='glove.6B.300d')
 answers.build_vocab(train_data)
 
 # Embedding dataset
 # inputs.vocab.vectors.size()
 # Index of the word "the"
-
 # word => index
 # TEXT.vocab.stoi["the"] # => 2
 
