@@ -79,24 +79,29 @@ class attention(nn.Module):
         self.encoder1 = encoder1
         self.encoder2 = encoder2
         self.softmax_layer = nn.Softmax(dim=1)
+        self.activation = nn.ReLU()
+        self.fc1 = nn.Linear(2 * 100, 100)
+        self.fc2 = nn.Linear(100, 3)
+        self.activation = nn.ReLU()
 
     def forward(self, prem_batch, hyp_batch):
         prem_hiddens, prem_hn, prem_cn = self.encoder1(prem_batch)
         _, hyp_hn, hyp_cn = self.encoder2(hyp_batch, prem_hn, prem_cn)
 
+        # Multiple each premise hidden layer by last hidden layer
+        # Apply softmax to return the weights
         hyp_hn = hyp_hn.permute(1, 2, 0)
         attention_weights = torch.squeeze(torch.bmm(prem_hiddens, hyp_hn), 2)
-        attention_weights = self.softmax_layer(attention_weights)
+        attention_weights = self.softmax_layer(attention_weights).unsqueeze(dim=2)
 
-        print("hyp_hn size is", hyp_hn.size())
-        print("prem hiddens is", prem_hiddens.size())
-        print("attention mul is", attention_weights.size())
+        prem_hiddens = prem_hiddens.permute(0, 2, 1)
+        weighted_prem_hiddens = torch.bmm(prem_hiddens, attention_weights)
 
-
-
-        return hyp_hn
-
-
-
+        combined_out = torch.cat((hyp_hn, weighted_prem_hiddens), dim=1).squeeze(2)
+        # print("combined_out", combined_out.size())
+        second_last_out = self.activation(self.fc1(combined_out))
+        # print("second_last_out", second_last_out.size())
+        out = self.fc2(second_last_out)
+        return out
 
 

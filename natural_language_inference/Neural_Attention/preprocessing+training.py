@@ -38,7 +38,7 @@ hidden_size = 100
 embedding_size = 300
 learning_rate = 0.001
 batch_size = 64
-num_epochs = 1
+num_epochs = 10
 p = 0.5
 
 premise_encoder = encoder1(hidden_size,
@@ -58,6 +58,27 @@ model = attention(premise_encoder, hyp_encoder).to(device)
 # Loss and optimizer
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
+
+# Check for the accuracy on the test and val to see the model performance
+def check_accuracy(validation_iterator, model):
+    num_correct = 0
+    num_sample = 0
+
+    with torch.no_grad():
+        for val_batch_idx, val_batch in enumerate(validation_iterator):
+            val_hyp = val_batch.hypothesis
+            val_prem = val_batch.premise
+
+            val_target = val_batch.label - 1
+            scores = model(val_hyp, val_prem)
+            # return the indices of each prediction
+            _, predictions = scores.max(1)
+            num_correct += (predictions == val_target).sum()
+            num_sample += predictions.size(0)
+        acc = (num_correct / num_sample)
+        print("The val set accuracy is {}".format(acc))
+    return acc
 
 
 # Train Network
@@ -82,4 +103,7 @@ for epoch in range(num_epochs):
         # gradient update
         optimizer.step()
 
-        break
+        model.eval()
+        if batch_idx % 1000 == 0:
+            print(loss)
+            check_accuracy(validation_iterator, model)
