@@ -34,7 +34,7 @@ train_iterator, validation_iterator, test_iterator = BucketIterator.splits(
 # Hyperparameter
 num_classes = 3
 num_layers = 1
-hidden_size = 100
+hidden_size = 159
 embedding_size = 300
 learning_rate = 0.001
 batch_size = 64

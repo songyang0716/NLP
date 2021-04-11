@@ -2,25 +2,30 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-from torchtext.data import Field
-from torchtext.data import BucketIterator
+# from torchtext.data import Field
+# from torchtext.data import BucketIterator
+import torchtext.legacy as legacy
 
-from torchtext.datasets import SNLI
+
+# from torchtext.datasets import SNLI
 from model import Sentence_RNN, Sentence_LSTM
 
 # Set device
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # set up fields, hypothesis + premise and categories
-inputs = Field(lower=True, tokenize='spacy', batch_first=True)
-answers = Field(sequential=False)
+inputs = legacy.data.Field(lower=True, tokenize='spacy', batch_first=True)
+answers = legacy.data.Field(sequential=False)
 
 # make splits for data
-train_data, validation_data, test_data = SNLI.splits(text_field=inputs, label_field=answers)
+train_data, validation_data, test_data = \
+    legacy.datasets.SNLI.splits(text_field=inputs, label_field=answers)
+# train_data[0].premise
+# train_data[0].label
 
 # build the vocabulary
 # https://github.com/pytorch/text/blob/master/torchtext/legacy/data/field.py
-inputs.build_vocab(train_data, min_freq=2, vectors='glove.6B.300d')
+inputs.build_vocab(train_data, min_freq=1, vectors='glove.6B.300d')
 answers.build_vocab(train_data)
 
 # Embedding dataset
@@ -29,18 +34,20 @@ answers.build_vocab(train_data)
 # word => index
 # TEXT.vocab.stoi["the"] # => 2
 
+
 pretrained_embeddings = inputs.vocab.vectors
 
-train_iterator, validation_iterator, test_iterator = BucketIterator.splits(
-    (train_data, validation_data, test_data),
-    batch_size=64,
-    device=device)
+train_iterator, validation_iterator, test_iterator = \
+    legacy.data.BucketIterator.splits((train_data, validation_data, test_data),
+                                      batch_size=64,
+                                      device=device)
 
 # Hyperparameter
 num_classes = 3
 num_layers = 1
 hidden_size = 100
 embedding_size = 300
+
 learning_rate = 0.001
 batch_size = 64
 num_epochs = 100
