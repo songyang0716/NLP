@@ -74,13 +74,13 @@ class attention(nn.Module):
     Generate weighted average of premise vectors
     """
 
-    def __init__(self, encoder1, encoder2):
+    def __init__(self, encoder1, encoder2, hidden_size):
         super(attention, self).__init__()
         self.encoder1 = encoder1
         self.encoder2 = encoder2
         self.softmax_layer = nn.Softmax(dim=1)
         self.activation = nn.ReLU()
-        self.fc1 = nn.Linear(2 * 100, 100)
+        self.fc1 = nn.Linear(2 * hidden_size, 100)
         self.fc2 = nn.Linear(100, 3)
         self.activation = nn.ReLU()
 

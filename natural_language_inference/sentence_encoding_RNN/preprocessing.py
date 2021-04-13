@@ -2,12 +2,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 
-# from torchtext.data import Field
-# from torchtext.data import BucketIterator
 import torchtext.legacy as legacy
-
-
-# from torchtext.datasets import SNLI
 from model import Sentence_RNN, Sentence_LSTM
 
 # Set device
