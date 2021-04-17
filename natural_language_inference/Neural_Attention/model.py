@@ -24,7 +24,7 @@ class encoder1(nn.Module):
                                  batch_first=True,
                                  dropout=p)
 
-    def forward(self, prem_batch):
+    def forward(self, prem_batch, sequence_length):
         """
             Feed premise batch into LSTM
             Extract the last hidden layer of the premise
@@ -58,7 +58,7 @@ class encoder2(nn.Module):
                                 batch_first=True,
                                 dropout=p)
 
-    def forward(self, hyp_batch, h0, c0):
+    def forward(self, hyp_batch, h0, c0, sequence_length):
         """
             Feed hypothesis batch into LSTM
             The first hidden state is from encoder1
@@ -73,7 +73,6 @@ class attention(nn.Module):
     """
     Generate weighted average of premise vectors
     """
-
     def __init__(self, encoder1, encoder2, hidden_size):
         super(attention, self).__init__()
         self.encoder1 = encoder1
@@ -84,9 +83,9 @@ class attention(nn.Module):
         self.fc2 = nn.Linear(100, 3)
         self.activation = nn.ReLU()
 
-    def forward(self, prem_batch, hyp_batch):
-        prem_hiddens, prem_hn, prem_cn = self.encoder1(prem_batch)
-        _, hyp_hn, hyp_cn = self.encoder2(hyp_batch, prem_hn, prem_cn)
+    def forward(self, prem_batch, hyp_batch, prem_length, hyp_length):
+        prem_hiddens, prem_hn, prem_cn = self.encoder1(prem_batch, prem_length)
+        _, hyp_hn, hyp_cn = self.encoder2(hyp_batch, prem_hn, prem_cn, hyp_length)
 
         # Multiple each premise hidden layer by last hidden layer
         # Apply softmax to return the weights
@@ -103,5 +102,3 @@ class attention(nn.Module):
         # print("second_last_out", second_last_out.size())
         out = self.fc2(second_last_out)
         return out
-
-

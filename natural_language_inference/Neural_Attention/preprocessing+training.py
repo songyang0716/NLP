@@ -11,12 +11,27 @@ from model import encoder1, encoder2, attention
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 # set up fields, hypothesis + premise and categories
-inputs = legacy.data.Field(lower=True, tokenize='spacy', batch_first=True)
+# spacy tokenizer is slow !!!, could use default one split
+inputs = legacy.data.Field(init_token='</s>',
+                           lower=True,
+                           tokenize='spacy',
+                           batch_first=True)
 answers = legacy.data.Field(sequential=False)
 
 # make splits for data
-train_data, validation_data, test_data = \
-    legacy.datasets.SNLI.splits(text_field=inputs, label_field=answers)
+# train_data, validation_data, test_data = \
+#     legacy.datasets.SNLI.splits(text_field=inputs, label_field=answers)
+fields = {'sentence1': ('n', inputs),
+          'sentence2': ('p', inputs),
+          'gold_label': ('s', answers)}
+
+train_data, validation_data, test_data = legacy.data.TabularDataset.splits(
+                                        path='./data/snli/snli_1.0/',
+                                        train='snli_1.0_train.csv',
+                                        validation='snli_1.0_dev.csv',
+                                        test='snli_1.0_test.csv',
+                                        format='csv',
+                                        fields=fields)
 
 # build the vocabulary
 inputs.build_vocab(train_data, min_freq=1, vectors='glove.6B.300d')
@@ -28,15 +43,12 @@ pretrained_embeddings = inputs.vocab.vectors
 # Hyperparameter
 num_classes = 3
 num_layers = 1
-# hidden_size = 159
 embedding_size = 300
-# learning_rate = 0.001
-# batch_size = 64
 p = 0.5
 
 
 # Check for the accuracy on the test and val to see the model performance
-def check_accuracy(validation_iterator, model):
+def check_accuracy(validation_iterator, model, step, writer):
     num_correct = 0
     num_sample = 0
 
@@ -52,14 +64,15 @@ def check_accuracy(validation_iterator, model):
             num_correct += (predictions == val_target).sum()
             num_sample += predictions.size(0)
         acc = (num_correct / num_sample)
+        writer.add_scalar('Validation set accuracy', acc, global_step=step)
         print("Val set accuracy: {}".format(acc))
     return acc
 
 
-learning_rates = [0.001, 0.01]
-batch_sizes = [64, 256]
-hidden_sizes = [100, 300, 500]
-num_epochs = 20
+learning_rates = [0.001]
+batch_sizes = [256]
+hidden_sizes = [300]
+num_epochs = 100
 
 for learning_rate in learning_rates:
     for batch_size in batch_sizes:
@@ -78,7 +91,7 @@ for learning_rate in learning_rates:
                                    num_layers,
                                    p).to(device)
 
-            model = attention(premise_encoder, hyp_encoder).to(device)
+            model = attention(premise_encoder, hyp_encoder, hidden_size).to(device)
             model.train()
             # define train iterator
             train_iterator, validation_iterator, test_iterator = \
@@ -99,8 +112,8 @@ for learning_rate in learning_rates:
                 for batch_idx, batch in enumerate(train_iterator):
                     model.train()
                     # data
-                    hyp_sentences = batch.hypothesis
-                    prem_sentences = batch.premise
+                    hyp_sentences, hyp_length = batch.hypothesis
+                    prem_sentences, prem_length = batch.premise
 
                     # outcome data need to be between 0 - (n_class-1)
                     target = batch.label - 1
@@ -125,7 +138,15 @@ for learning_rate in learning_rates:
                     writer.add_scalar('Training Accuracy',
                                       running_train_acc,
                                       global_step=step)
-                    step += 1
+                    # step += 1
+                    model.eval()
+                    if batch_idx % 100 == 0:
+                        writer.add_scalar('Training Loss', loss, global_step=step)
+                        writer.add_scalar('Training Accuracy', running_train_acc, global_step=step)
+
+                        # Check for the running accuracy of validation
+                        check_accuracy(validation_iterator, model, step, writer)
+                        step += 1
 
         # model.eval()
         # if batch_idx % 1000 == 0:
