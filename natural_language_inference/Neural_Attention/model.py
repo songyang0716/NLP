@@ -30,7 +30,13 @@ class encoder1(nn.Module):
             Extract the last hidden layer of the premise
         """
         prem_embedding_layer = self.dropout(self.emb(prem_batch))
-        prem_out, (prem_hn, prem_cn) = self.lstm_prem(prem_embedding_layer)
+        packed_embeddings = \
+            nn.utils.rnn.pack_padded_sequence(prem_embedding_layer,
+                                              sequence_length.cpu(),
+                                              batch_first=True,
+                                              enforce_sorted=False)
+        prem_out, (prem_hn, prem_cn) = self.lstm_prem(packed_embeddings)
+        prem_out, _ = nn.utils.rnn.pad_packed_sequence(prem_out, batch_first=True)
 
         return prem_out, prem_hn, prem_cn
 
@@ -64,7 +70,12 @@ class encoder2(nn.Module):
             The first hidden state is from encoder1
         """
         hyp_embedding_layer = self.dropout(self.emb(hyp_batch))
-        hyp_out, (hyp_hn, hyp_cn) = self.lstm_hyp(hyp_embedding_layer, (h0, c0))
+        packed_embeddings = \
+            nn.utils.rnn.pack_padded_sequence(hyp_embedding_layer,
+                                              sequence_length.cpu(),
+                                              batch_first=True,
+                                              enforce_sorted=False)
+        hyp_out, (hyp_hn, hyp_cn) = self.lstm_hyp(packed_embeddings, (h0, c0))
 
         return hyp_out, hyp_hn, hyp_cn
 
@@ -82,10 +93,13 @@ class attention(nn.Module):
         self.fc1 = nn.Linear(2 * hidden_size, 100)
         self.fc2 = nn.Linear(100, 3)
         self.activation = nn.ReLU()
+        self.fc1.weight.data = nn.init.xavier_uniform_(self.fc1.weight.data)
+        self.fc2.weight.data = nn.init.xavier_uniform_(self.fc2.weight.data)
 
     def forward(self, prem_batch, hyp_batch, prem_length, hyp_length):
         prem_hiddens, prem_hn, prem_cn = self.encoder1(prem_batch, prem_length)
         _, hyp_hn, hyp_cn = self.encoder2(hyp_batch, prem_hn, prem_cn, hyp_length)
+
 
         # Multiple each premise hidden layer by last hidden layer
         # Apply softmax to return the weights

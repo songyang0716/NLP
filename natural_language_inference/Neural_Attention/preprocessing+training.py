@@ -15,23 +15,14 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 inputs = legacy.data.Field(init_token='</s>',
                            lower=True,
                            tokenize='spacy',
-                           batch_first=True)
+                           batch_first=True,
+                           include_lengths=True)
 answers = legacy.data.Field(sequential=False)
 
 # make splits for data
-# train_data, validation_data, test_data = \
-#     legacy.datasets.SNLI.splits(text_field=inputs, label_field=answers)
-fields = {'sentence1': ('n', inputs),
-          'sentence2': ('p', inputs),
-          'gold_label': ('s', answers)}
+train_data, validation_data, test_data = \
+    legacy.datasets.SNLI.splits(text_field=inputs, label_field=answers)
 
-train_data, validation_data, test_data = legacy.data.TabularDataset.splits(
-                                        path='./data/snli/snli_1.0/',
-                                        train='snli_1.0_train.csv',
-                                        validation='snli_1.0_dev.csv',
-                                        test='snli_1.0_test.csv',
-                                        format='csv',
-                                        fields=fields)
 
 # build the vocabulary
 inputs.build_vocab(train_data, min_freq=1, vectors='glove.6B.300d')
@@ -70,9 +61,9 @@ def check_accuracy(validation_iterator, model, step, writer):
 
 
 learning_rates = [0.001]
-batch_sizes = [256]
-hidden_sizes = [300]
-num_epochs = 100
+batch_sizes = [128]
+hidden_sizes = [100]
+num_epochs = 20
 
 for learning_rate in learning_rates:
     for batch_size in batch_sizes:
@@ -99,7 +90,8 @@ for learning_rate in learning_rates:
                                                   validation_data,
                                                   test_data),
                                                   batch_size=batch_size,
-                                                  device=device)
+                                                  device=device,
+                                                  sort_within_batch=True)
             # Loss and optimizer
             criterion = nn.CrossEntropyLoss()
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
@@ -112,20 +104,21 @@ for learning_rate in learning_rates:
                 for batch_idx, batch in enumerate(train_iterator):
                     model.train()
                     # data
-                    hyp_sentences, hyp_length = batch.hypothesis
                     prem_sentences, prem_length = batch.premise
+                    hyp_sentences, hyp_length = batch.hypothesis
 
                     # outcome data need to be between 0 - (n_class-1)
                     target = batch.label - 1
                     # forward
-                    scores = model(hyp_sentences, prem_sentences)
+                    scores = model(prem_sentences, hyp_sentences,
+                                   prem_length, hyp_length)
                     loss = criterion(scores, target)
                     losses.append(loss.item())
 
                     # backward
                     optimizer.zero_grad()
                     loss.backward()
-                    nn.utils.clip_grad_norm(model.parameters(), max_norm=1)
+                    nn.utils.clip_grad_norm_(model.parameters(), max_norm=1)
                     optimizer.step()
 
                     _, predictions = scores.max(1)
