@@ -100,7 +100,6 @@ class attention(nn.Module):
         prem_hiddens, prem_hn, prem_cn = self.encoder1(prem_batch, prem_length)
         _, hyp_hn, hyp_cn = self.encoder2(hyp_batch, prem_hn, prem_cn, hyp_length)
 
-
         # Multiple each premise hidden layer by last hidden layer
         # Apply softmax to return the weights
         hyp_hn = hyp_hn.permute(1, 2, 0)

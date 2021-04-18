@@ -36,6 +36,18 @@ num_classes = 3
 num_layers = 1
 embedding_size = 300
 p = 0.5
+load_model = False
+
+
+def save_checkpoint(state, filename="my_checkpoint.pth.tar"):
+    print("=> Saving checkpoint")
+    torch.save(state, filename)
+
+
+def load_checkpoint(checkpoint):
+    print("=> Loading checkpoint")
+    model.load_state_dict(checkpoint['state_dict'])
+    optimizer.load_state_dict(checkpoint['optimizer'])
 
 
 # Check for the accuracy on the test and val to see the model performance
@@ -64,6 +76,7 @@ learning_rates = [0.001]
 batch_sizes = [128]
 hidden_sizes = [100]
 num_epochs = 20
+
 
 for learning_rate in learning_rates:
     for batch_size in batch_sizes:
@@ -96,11 +109,17 @@ for learning_rate in learning_rates:
             criterion = nn.CrossEntropyLoss()
             optimizer = optim.Adam(model.parameters(), lr=learning_rate)
             writer = SummaryWriter('runs/SNLI/attention_tensorboard/LR_{} batch_size_{} hidden_size_{}'.format(learning_rate, batch_size, hidden_size))
+            if load_model:
+                load_checkpoint(torch.load("my_checkpoint.pth.tar"))
+
             # Train Network
             for epoch in range(num_epochs):
                 losses = []
                 accuracies = []
-
+                if (epoch+1) % 10 == 0:
+                    checkpoint = {'state_dict': model.state_dict(),
+                                  'optimizer': optimizer.state_dict()}
+                    save_checkpoint(checkpoint)
                 for batch_idx, batch in enumerate(train_iterator):
                     model.train()
                     # data
@@ -152,3 +171,6 @@ for learning_rate in learning_rates:
         #     # Check for the running accuracy of validation
         #     check_accuracy(validation_iterator, model)
 # %tensorboard --logdir ./runs
+
+# Load model checkpoint
+
