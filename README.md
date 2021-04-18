@@ -11,7 +11,7 @@
 3. LSTM with attention model
 
 ## Natural Language Inference
-1.  - "A large annotated corpus for learning natural language inference"
-
+1. sentence_encoding_RNN - "A large annotated corpus for learning natural language inference"
 2. ESIM - "Enhanced LSTM for Natural Language Inference "
 3. Neural_Attention - "Reasoning about Entailment with Neural Attention"
+Test these model structures using Stanford NLI Corpus
