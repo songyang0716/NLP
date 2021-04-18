@@ -1,4 +1,4 @@
-# NLP
+# This repo reproduces several NLP tasks using Pytorch
 
 ## Word Embedding 
 1. Cbow
@@ -11,5 +11,7 @@
 3. LSTM with attention model
 
 ## Natural Language Inference
-1. A large annotated corpus for learning natural language inference
-2. ESIM 
+1.  - "A large annotated corpus for learning natural language inference"
+
+2. ESIM - "Enhanced LSTM for Natural Language Inference "
+3. Neural_Attention - "Reasoning about Entailment with Neural Attention"
