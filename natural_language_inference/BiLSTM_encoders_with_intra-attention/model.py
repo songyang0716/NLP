@@ -52,7 +52,9 @@ class inner_attention(nn.Module):
         self.WY = nn.Linear(2 * hidden_size, 2 * hidden_size)
         self.WH = nn.Linear(2 * hidden_size, 2 * hidden_size)
         self.W = nn.Linear(2 * hidden_size, 1)
-        self.fc = nn.Linear(8 * hidden_size, 3)
+        self.fc1 = nn.Linear(8 * hidden_size, 300)
+        self.fc2 = nn.Linear(300, 300)
+        self.fc3 = nn.Linear(300, 3)
         self.tanh = nn.Tanh()
         self.softmax_layer = nn.Softmax(dim=1)
         self.dropout = nn.Dropout(p)
@@ -60,7 +62,12 @@ class inner_attention(nn.Module):
         self.WY.weight.data = nn.init.xavier_uniform_(self.WY.weight.data)
         self.WH.weight.data = nn.init.xavier_uniform_(self.WH.weight.data)
         self.W.weight.data = nn.init.xavier_uniform_(self.W.weight.data)
-        self.fc.weight.data = nn.init.xavier_uniform_(self.fc.weight.data)
+
+        self.fc1.weight.data = nn.init.xavier_uniform_(self.fc1.weight.data)
+        self.fc2.weight.data = nn.init.xavier_uniform_(self.fc2.weight.data)
+        self.fc3.weight.data = nn.init.xavier_uniform_(self.fc3.weight.data)
+
+        self.layernorm = nn.LayerNorm(normalized_shape=300)
 
     def forward(self, prem_batch, hyp_batch, prem_length, hyp_length):
         """
@@ -115,7 +122,7 @@ class inner_attention(nn.Module):
         sentence_difference = weighted_premise - weighted_hyp
         sentence_multiplication = weighted_premise * weighted_hyp
 
-        second_last_out = torch.cat(
+        sentence_matching = torch.cat(
             (
                 weighted_premise,
                 sentence_multiplication,
@@ -124,6 +131,15 @@ class inner_attention(nn.Module):
             ),
             dim=1,
         )
-        second_last_out = self.dropout(second_last_out)
-        out = self.fc(second_last_out)
+        fc1_layer = self.fc1(sentence_matching)
+        fc1_layer = self.tanh(fc1_layer)
+        fc1_layer = self.layernorm(fc1_layer)
+        fc1_layer = self.dropout(fc1_layer)
+
+        fc2_layer = self.fc2(fc1_layer)
+        fc2_layer = self.tanh(fc2_layer)
+        fc2_layer = self.layernorm(fc2_layer)
+        fc2_layer = self.dropout(fc2_layer)
+
+        out = self.fc3(fc2_layer)
         return out

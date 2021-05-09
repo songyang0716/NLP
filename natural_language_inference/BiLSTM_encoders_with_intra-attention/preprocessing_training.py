@@ -75,7 +75,7 @@ load_model = False
 # Model hyperparameter
 num_layer = 1
 p = 0.25
-learning_rates = [0.0001, 0.00005]
+learning_rates = [0.001]
 batch_size = 128
 hidden_sizes = [300]
 num_epochs = 10
@@ -115,7 +115,7 @@ for hidden_size in hidden_sizes:
             load_checkpoint(torch.load("my_checkpoint.pth.tar"))
 
         # initialize the early_stopping object
-        early_stopping = EarlyStopping(patience=5, verbose=True)
+        early_stopping = EarlyStopping(patience=3, verbose=True)
 
         # to track the average training loss per epoch as the model trains
         avg_train_losses = []
