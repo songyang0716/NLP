@@ -34,6 +34,15 @@ answers.build_vocab(train_data)
 
 pretrained_embeddings = inputs.vocab.vectors
 
+train_iterator, validation_iterator, test_iterator = \
+    legacy.data.BucketIterator.splits((train_data,
+                                      validation_data,
+                                      test_data),
+                                      batch_size=batch_size,
+                                      device=device,
+                                      sort_within_batch=True)
+
+
 model = DirectionalSelfAttention(pretrained_embeddings, 300, 100)
 
 for batch_idx, batch in enumerate(train_iterator):
