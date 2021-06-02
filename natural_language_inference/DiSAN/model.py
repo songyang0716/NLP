@@ -26,9 +26,9 @@ class DirectionalSelfAttention(nn.Module):
         self.W_2.bias.requires_grad_(False)
 
         self.tanh = nn.Tanh()
-        # self.softmax_layer = nn.Softmax(dim=1)
-
-        self.c = torch.tensor([5])
+        self.b_1 = nn.Parameter(torch.zeros(dh))
+        self.c = nn.Parameter(torch.Tensor([5.0]), requires_grad=False)
+        
         self.device = device
 
     def forward(self, sentence_batch, positional_mask="forward"):
@@ -39,7 +39,10 @@ class DirectionalSelfAttention(nn.Module):
         h = h.unsqueeze(2).expand(batch_size, seq_len, seq_len, dh)
         mask = self.return_positional_mask(batch_size, seq_len, dh, positional_mask)
         mask = mask.unsqueeze(-1).expand(batch_size, seq_len, seq_len, dh)
-        return mask
+        l = self.c * self.tanh((torch.matmul(self.W_1, h) +
+                                torch.matmul(self.W_2, h) + self.b_1) / self.c) + \
+            mask
+        return l
 
     def return_positional_mask(self,
                                batch_size,
@@ -62,3 +65,4 @@ class DirectionalSelfAttention(nn.Module):
         else:
             raise NotImplementedError('only forward or backward mask is allowed!')
         return mask.unsqueeze(0).expand(batch_size, seq_len, seq_len)
+
